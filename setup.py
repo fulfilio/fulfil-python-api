@@ -15,7 +15,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    # TODO: put package requirements here
+    'requests',
 ]
 
 test_requirements = [
@@ -29,12 +29,13 @@ setup(
     long_description=readme + '\n\n' + history,
     author="Fulfil.IO Inc.",
     author_email='hello@fulfil.io',
-    url='https://github.com/fulfilio/fulfil_client',
+    url='https://github.com/fulfilio/fulfil-python-api',
     packages=[
         'fulfil_client',
     ],
-    package_dir={'fulfil_client':
-                 'fulfil_client'},
+    package_dir={
+        'fulfil_client': 'fulfil_client'
+    },
     include_package_data=True,
     install_requires=requirements,
     license="ISCL",
