@@ -5,4 +5,4 @@ __email__ = 'hello@fulfil.io'
 __version__ = '0.1.1'
 
 
-from client import Client, Model
+from client import Client, Model, ServerError

@@ -10,7 +10,7 @@ Tests for `fulfil_client` module.
 import os
 import unittest
 
-from fulfil_client import Client
+from fulfil_client import Client, ServerError
 
 
 class TestFulfilClient(unittest.TestCase):
@@ -28,6 +28,10 @@ class TestFulfilClient(unittest.TestCase):
         Model = self.client.model('ir.model')
         self.assertTrue(len(Model.search([])) > 0)
 
+    def test_010_connection(self):
+        Model = self.client.model('ir.model')
+        with self.assertRaises(ServerError):
+            Model.search([], context=1)
 
 if __name__ == '__main__':
     import sys
