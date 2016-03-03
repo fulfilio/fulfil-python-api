@@ -50,3 +50,10 @@ class Model(object):
             }
         )
         return loads(response.content)
+
+    def create(self, data):
+        response = self.client.session.post(
+            self.path,
+            data=dumps(data)
+        )
+        return loads(response.content)
