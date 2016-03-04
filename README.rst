@@ -17,6 +17,7 @@ Fulfil REST API Client in Python
 
 * Free software: ISC license
 * Documentation: https://fulfil-python-api.readthedocs.org.
+* Examples: https://github.com/fulfilio/fulfil-python-api/tree/master/examples.
 
 Features
 --------
