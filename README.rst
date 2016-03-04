@@ -27,7 +27,7 @@ Features
 Quickstart
 ----------
 
-::
+.. code:: python
 
     from fulfil_client import Client
 
@@ -44,7 +44,7 @@ Contacts
 Contact can have multiple addresses and contact mechanisms i.e. phone,
 email.
 
-::
+.. code:: python
 
     from fulfil_client import Client
     client = Client('<subdomain>', '<api_key>')
@@ -92,7 +92,7 @@ Products
 Products are grouped by templates, which have common information shared by
 products a.k.a. variants.
 
-::
+.. code:: python
 
     from decimal import Decimal
 
@@ -127,7 +127,7 @@ products a.k.a. variants.
 Sale
 ----
 
-::
+.. code:: python
 
     contact = Contact.get(contact['id'])
     iphone6 = Product.get(iphone6['id'])
