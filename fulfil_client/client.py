@@ -24,24 +24,46 @@ class Client(object):
 
 class Model(object):
 
+    _local_methods = [
+        'create', 'search', 'get'
+    ]
+
     def __init__(self, client, model_name):
-        self.client = client
-        self.model_name = model_name
+        self._client = client
+        self._model_name = model_name
 
     @property
-    def path(self):
-        return '%s/model/%s' % (self.client.base_url, self.model_name)
+    def _path(self):
+        return '%s/model/%s' % (self._client.base_url, self._model_name)
+
+    def __getattribute__(self, name):
+        if name.startswith('_') or name in self._local_methods:
+            return object.__getattribute__(self, name)
+        else:
+            return partial(self._run, name)
+
+    def _run(self, method_name, *args, **kwargs):
+        id = kwargs.pop('id', None)
+        if id:
+            path = "%s/%s/%s" % (self._path, id, method_name)
+        else:
+            path = "%s/%s" % (self._path, method_name)
+        response = self._client.session.put(
+            path,
+            data=dumps(args)
+        )
+        return loads(response.content)
 
     def get(self, id):
         return loads(
-            self.client.session.get(
-                self.path + '/%d' % id
+            self._client.session.get(
+                self._path + '/%d' % id
             ).content
         )
 
     def search(self, filter, page=1, per_page=10, fields=None):
-        response = self.client.session.get(
-            self.path,
+        response = self._client.session.get(
+            self._path,
             params={
                 'filter': dumps(filter or []),
                 'page': page,
@@ -52,8 +74,8 @@ class Model(object):
         return loads(response.content)
 
     def create(self, data):
-        response = self.client.session.post(
-            self.path,
+        response = self._client.session.post(
+            self._path,
             data=dumps(data)
         )
         return loads(response.content)
