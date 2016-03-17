@@ -57,3 +57,15 @@ class Model(object):
             data=dumps(data)
         )
         return loads(response.content)
+
+    def run(self, method_name, *args, **kwargs):
+        id = kwargs.pop('id', None)
+        if id:
+            path = "%s/%s/%s" % (self.path, id, method_name)
+        else:
+            path = "%s/%s" % (self.path, method_name)
+        response = self.client.session.put(
+            path,
+            data=dumps(args)
+        )
+        return loads(response.content)
