@@ -12,7 +12,7 @@ client = Client('<subdomain>', '<api_key>')
 Contact = client.model('party.party')
 contact, = Contact.create([{'name': 'Jon Doe'}])
 
-# You can create multiple contacts too ;-)
+# You can create multiple contacts in one request too ;-)
 contacts = Contact.create([
     {
         'name': 'Jon Doe'
@@ -27,7 +27,9 @@ contacts = Contact.create([
 # Creating Address
 # ================
 
-# You need a contact id to create a address
+# Note: You need a contact id first to create an address
+#
+# Add an address to the contact created above
 Address = client.model('party.address')
 address, = Address.create([{
     'party': contact['id'],
