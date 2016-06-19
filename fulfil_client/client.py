@@ -16,7 +16,6 @@ def json_response(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         rv = function(*args, **kwargs)
-        print rv.content
         if not rv.status_code == requests.codes.ok:
             raise ServerError(loads(rv.content))
         return loads(rv.content)
@@ -48,7 +47,6 @@ class Client(object):
     def today(self):
         Date = self.model('ir.date')
         rv = Date.today()
-        print rv
         return rv
 
     def model(self, name):
