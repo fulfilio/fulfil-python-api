@@ -1,7 +1,7 @@
 import json
 import requests
 from functools import partial, wraps
-from trytond.protocols.jsonrpc import JSONDecoder, JSONEncoder
+from serialization import JSONDecoder, JSONEncoder
 
 
 dumps = partial(json.dumps, cls=JSONEncoder)
