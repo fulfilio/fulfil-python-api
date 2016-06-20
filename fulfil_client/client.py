@@ -1,7 +1,7 @@
 import json
 import requests
 from functools import partial, wraps
-from trytond.protocols.jsonrpc import JSONDecoder, JSONEncoder
+from serialization import JSONDecoder, JSONEncoder
 
 
 dumps = partial(json.dumps, cls=JSONEncoder)
@@ -16,7 +16,6 @@ def json_response(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         rv = function(*args, **kwargs)
-        print rv.content
         if not rv.status_code == requests.codes.ok:
             raise ServerError(loads(rv.content))
         return loads(rv.content)
@@ -48,11 +47,13 @@ class Client(object):
     def today(self):
         Date = self.model('ir.date')
         rv = Date.today()
-        print rv
         return rv
 
     def model(self, name):
         return Model(self, name)
+
+    def record(self, model_name, id):
+        return Record(self.model(model_name), id)
 
 
 class Record(object):
@@ -62,6 +63,18 @@ class Record(object):
 
     def __getattr__(self, name):
         return getattr(self.model, name)
+
+    def update(self, data=None, **kwargs):
+        """
+        Update the record right away.
+
+        :param data: dictionary of changes
+        :param kwargs: possibly a list of keyword args to change
+        """
+        if data is None:
+            data = {}
+        data.update(kwargs)
+        return self.model.write([self.id], data)
 
 
 class Model(object):

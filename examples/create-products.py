@@ -74,7 +74,7 @@ print Product.search([('code', '=', 'IPHONE-6')])
 # Search by SKU(pattern match)
 print Product.search([('code', 'ilike', '%IPHONE%')])
 
-# Search by name(pattern match)
+# Search by name(pattern match, case insensitive)
 print Product.search([('name', 'ilike', '%Phone%')])
 
 # Get a product by ID
