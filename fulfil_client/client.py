@@ -64,6 +64,18 @@ class Record(object):
     def __getattr__(self, name):
         return getattr(self.model, name)
 
+    def update(self, data=None, **kwargs):
+        """
+        Update the record right away.
+
+        :param data: dictionary of changes
+        :param kwargs: possibly a list of keyword args to change
+        """
+        if data is None:
+            data = {}
+        data.update(kwargs)
+        return self.model.write([self.id], data)
+
 
 class Model(object):
 
