@@ -52,6 +52,9 @@ class Client(object):
     def model(self, name):
         return Model(self, name)
 
+    def record(self, model_name, id):
+        return Record(self.model(model_name), id)
+
 
 class Record(object):
     def __init__(self, model, id):
