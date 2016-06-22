@@ -44,8 +44,8 @@ address, = Address.create([{
 Country = client.model('country.country')
 Subdivision = client.model('country.subdivision')
 
-country_usa, = Country.search([('code', '=', 'US')])
-state_california, = Subdivision.search([('code', '=', 'US-CA')])
+country_usa, = Country.find([('code', '=', 'US')])
+state_california, = Subdivision.find([('code', '=', 'US-CA')])
 
 address, = Address.create([{
     'party': contact['id'],
@@ -110,7 +110,7 @@ contact, = Contact.create([{
 
 
 # Search contact by name
-print Contact.search([('name', '=', 'Jon Doe')])
+print Contact.find([('name', '=', 'Jon Doe')])
 
 # Get a contact by ID
 print Contact.get(contact['id'])

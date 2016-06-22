@@ -13,7 +13,7 @@ Contact = client.model('party.party')
 Sale = client.model('sale.sale')
 
 # Get the contact first
-contacts = Contact.search([('name', 'ilike', '%Jon%')])
+contacts = Contact.find([('name', 'ilike', '%Jon%')])
 contact, = Contact.get(contacts[0]['id'])
 
 sale, = Sale.create([{
@@ -29,10 +29,10 @@ sale, = Sale.create([{
 Product = client.model('product.product')
 Line = client.model('sale.line')
 
-products = Product.search([('code', '=', 'IPHONE-6')])
+products = Product.find([('code', '=', 'IPHONE-6')])
 iphone6, = Product.get(products[0]['id'])
 
-products = Product.search([('code', '=', 'IPHONE-6S')])
+products = Product.find([('code', '=', 'IPHONE-6S')])
 iphone6s, = Product.get(products[0]['id'])
 
 

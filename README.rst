@@ -34,7 +34,7 @@ Quickstart
     client = Client('<subdomain>', '<api_key>')
 
     Product = client.model('product.product')
-    iphones = Product.search(['name', 'ilike', 'iphone'])
+    iphones = Product.find(['name', 'ilike', 'iphone'])
 
 
 
@@ -53,8 +53,8 @@ email.
     Country = client.model('country.country')
     Subdivision = client.model('country.subdivision')
 
-    country_usa, = Country.search([('code', '=', 'US')])
-    state_california, = Subdivision.search([('code', '=', 'US-CA')])
+    country_usa, = Country.find([('code', '=', 'US')])
+    state_california, = Subdivision.find([('code', '=', 'US-CA')])
 
     # Creating a contact with address and contact mechanisms
     contact, = Contact.create([{
@@ -78,7 +78,7 @@ email.
     print contact
 
     # Searching for a contact
-    contact, = Contact.search([('name', '=', 'Jon Doe')])
+    contact, = Contact.find([('name', '=', 'Jon Doe')])
     print contact
 
     # Get a contact by ID
