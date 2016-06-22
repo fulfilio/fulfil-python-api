@@ -20,7 +20,7 @@ def get_warehouses():
     Return the warehouses in the system
     """
     StockLocation = client.model('stock.location')
-    return StockLocation.search(
+    return StockLocation.find(
         [('type', '=', 'warehouse')],   # filter just warehouses
         fields=['code', 'name']         # Get the code and name fields
     )
@@ -70,7 +70,7 @@ def get_customer(code):
     Returns None if the customer is not found.
     """
     Party = client.model('party.party')
-    results = Party.search([('code', '=', code)])
+    results = Party.find([('code', '=', code)])
     if results:
         return results[0]['id']
 
@@ -83,7 +83,7 @@ def get_address(customer_id, data):
     """
     Address = client.model('party.address')
 
-    addresses = Address.search(
+    addresses = Address.find(
         [('party', '=', customer_id)],
         fields=[
             'name', 'street', 'street_bis', 'city', 'zip',
@@ -110,8 +110,8 @@ def create_address(customer_id, data):
     Country = client.model('country.country')
     Subdivision = client.model('country.subdivision')
 
-    country, = Country.search([('code', '=', data['country'])])
-    state, = Subdivision.search([
+    country, = Country.find([('code', '=', data['country'])])
+    state, = Subdivision.find([
         ('code', 'ilike', '%-' + data['state']),    # state codes are US-CA, IN-KL
         ('country', '=', country['id'])
     ])
@@ -153,7 +153,7 @@ def get_product(code):
     Given a product code/sku return the product id
     """
     Product = client.model('product.product')
-    return Product.search(
+    return Product.find(
         [('code', '=', code)],  # Filter
         fields=['code', 'variant_name', 'cost_price']
     )[0]

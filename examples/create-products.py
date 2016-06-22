@@ -69,13 +69,13 @@ print Template.create([{
 # ======================
 
 # Search by SKU(exact match)
-print Product.search([('code', '=', 'IPHONE-6')])
+print Product.find([('code', '=', 'IPHONE-6')])
 
 # Search by SKU(pattern match)
-print Product.search([('code', 'ilike', '%IPHONE%')])
+print Product.find([('code', 'ilike', '%IPHONE%')])
 
 # Search by name(pattern match, case insensitive)
-print Product.search([('name', 'ilike', '%Phone%')])
+print Product.find([('name', 'ilike', '%Phone%')])
 
 # Get a product by ID
 print Product.get(iphone6s['id'])
