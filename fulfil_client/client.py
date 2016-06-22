@@ -112,7 +112,7 @@ class Model(object):
         )
 
     @json_response
-    def search(self, filter, page=1, per_page=10, fields=None, context=None):
+    def find(self, filter, page=1, per_page=10, fields=None, context=None):
         return self.client.session.get(
             self.path,
             params={
