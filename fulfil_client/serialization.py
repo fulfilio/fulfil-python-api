@@ -49,7 +49,6 @@ def _bytes_decoder(dct):
     return cast(base64.decodestring(dct['base64'].encode('utf-8')))
 
 JSONDecoder.register('bytes', _bytes_decoder)
-JSONDecoder.register('Decimal', lambda dct: Decimal(dct['decimal']))
 
 
 class JSONEncoder(json.JSONEncoder):
