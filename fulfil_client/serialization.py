@@ -40,12 +40,16 @@ JSONDecoder.register(
     )
 )
 JSONDecoder.register(
-    'buffer', lambda dct:
-    buffer(base64.decodestring(dct['base64']))
-)
-JSONDecoder.register(
     'Decimal', lambda dct: Decimal(dct['decimal'])
 )
+
+
+def _bytes_decoder(dct):
+    cast = bytearray if bytes == str else bytes
+    return cast(base64.decodestring(dct['base64'].encode('utf-8')))
+
+JSONDecoder.register('bytes', _bytes_decoder)
+JSONDecoder.register('Decimal', lambda dct: Decimal(dct['decimal']))
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -102,14 +106,18 @@ JSONEncoder.register(
         'microsecond': o.microsecond,
     })
 JSONEncoder.register(
-    buffer,
-    lambda o: {
-        '__class__': 'buffer',
-        'base64': base64.encodestring(o),
-    })
-JSONEncoder.register(
     Decimal,
     lambda o: {
         '__class__': 'Decimal',
         'decimal': str(o),
     })
+
+
+def _bytes_encoder(o):
+    return {
+        '__class__': 'bytes',
+        'base64': base64.encodestring(o).decode('utf-8'),
+    }
+
+JSONEncoder.register(bytes, _bytes_encoder)
+JSONEncoder.register(bytearray, _bytes_encoder)
