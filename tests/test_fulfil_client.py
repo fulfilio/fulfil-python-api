@@ -7,32 +7,19 @@ test_fulfil_client
 
 Tests for `fulfil_client` module.
 """
-import os
-import unittest
-
-from fulfil_client import Client, ServerError
+import pytest
+from fulfil_client import ServerError
 
 
-class TestFulfilClient(unittest.TestCase):
+def test_find(client):
+    IRModel = client.model('ir.model')
+    ir_models = IRModel.find([])
+    assert len(ir_models) > 0
+    assert ir_models[0]['id']
+    assert ir_models[0]['rec_name']
 
-    def setUp(self):
-        try:
-            self.client = Client('fulfil_demo', os.environ['FULFIL_API_KEY'])
-        except KeyError:
-            self.fail('No FULFIL_API_KEY in environment')
 
-    def tearDown(self):
-        pass
-
-    def test_000_connection(self):
-        Model = self.client.model('ir.model')
-        self.assertTrue(len(Model.search([])) > 0)
-
-    def test_010_connection(self):
-        Model = self.client.model('ir.model')
-        with self.assertRaises(ServerError):
-            Model.search([], context=1)
-
-if __name__ == '__main__':
-    import sys
-    sys.exit(unittest.main())
+def test_raises_server_error(client):
+    Model = client.model('ir.model')
+    with pytest.raises(ServerError):
+        Model.search([], context=1)
