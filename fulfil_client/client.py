@@ -112,7 +112,28 @@ class Model(object):
         )
 
     @json_response
-    def find(self, filter, page=1, per_page=10, fields=None, context=None):
+    def find(self, filter=None, page=1, per_page=10, fields=None, context=None):
+        """
+        Find records that match the filter.
+
+        Pro Tip: The fields could have nested fields names if the field is
+        a relationship type. For example if you were looking up an order
+        and also want to get the shipping address country then fields would be:
+
+            `['shipment_address', 'shipment_address.country']`
+
+        but country in this case is the ID of the country which is not very
+        useful if you don't already have a map. You can fetch the country code
+        by adding `'shipment_address.country.code'` to the fields.
+
+        :param filter: A domain expression (Refer docs for domain syntax)
+        :param page: The page to fetch to get paginated results
+        :param per_page: The number of records to fetch per page
+        :param fields: A list of field names to fetch.
+        :param context: Any overrides to the context.
+        """
+        if filter is None:
+            filter = []
         return self.client.session.get(
             self.path,
             params={

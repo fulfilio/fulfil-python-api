@@ -34,6 +34,11 @@ Quickstart
     client = Client('<subdomain>', '<api_key>')
 
     Product = client.model('product.product')
+
+    # find products
+    some_products = Product.find()
+
+    # find products that have a name similar to iphone
     iphones = Product.find(['name', 'ilike', 'iphone'])
 
 
