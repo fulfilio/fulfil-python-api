@@ -7,6 +7,7 @@ and better
 """
 import functools
 from copy import copy
+from decimal import Decimal
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
@@ -63,6 +64,20 @@ class StringType(BaseType):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('cast', unicode)
         super(StringType, self).__init__(*args, **kwargs)
+
+
+class DecimalType(BaseType):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('cast', Decimal)
+        super(DecimalType, self).__init__(*args, **kwargs)
+
+
+class FloatType(BaseType):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('cast', float)
+        super(FloatType, self).__init__(*args, **kwargs)
 
 
 class CurrencyType(StringType):
