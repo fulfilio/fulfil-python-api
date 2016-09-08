@@ -233,7 +233,7 @@ class Query(object):
     def all(self):
         "Return the results represented by this Query as a list."
         return self.rpc_model.search_read(
-            self.domain, self._limit, self._offset, self._order_by,
+            self.domain, self._offset, self._limit, self._order_by,
             self.fields,
             context=self.context
         )
