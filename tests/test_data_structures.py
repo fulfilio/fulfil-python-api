@@ -55,7 +55,6 @@ class TestModificationTrackingDict(object):
 def query(client):
     return Query(
         client.model('res.user'),
-        dict
     )
 
 
@@ -85,7 +84,7 @@ def res_user_model(Model):
 @pytest.fixture
 def module_model(Model):
     class ModuleModel(Model):
-        __model_name__ = 'ir.module.module'
+        __model_name__ = 'ir.module'
         name = StringType()
     return ModuleModel
 

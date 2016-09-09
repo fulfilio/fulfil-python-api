@@ -7,6 +7,7 @@ and better
 """
 import functools
 from copy import copy
+from decimal import Decimal
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
@@ -65,6 +66,35 @@ class StringType(BaseType):
         super(StringType, self).__init__(*args, **kwargs)
 
 
+class DecimalType(BaseType):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('cast', Decimal)
+        super(DecimalType, self).__init__(*args, **kwargs)
+
+
+class FloatType(BaseType):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('cast', float)
+        super(FloatType, self).__init__(*args, **kwargs)
+
+
+class One2ManyType(BaseType):
+
+    def __init__(self, model, *args, **kwargs):
+        self.model = model
+        kwargs.setdefault('cast', list)
+        super(One2ManyType, self).__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if instance._values.get(self.name):
+            return self.model.from_ids(instance._values.get(self.name))
+        return instance._values.get(self.name)
+
+
 class CurrencyType(StringType):
     pass
 
@@ -73,6 +103,13 @@ class ModelType(IntType):
     def __init__(self, model, *args, **kwargs):
         self.model = model
         super(ModelType, self).__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if instance._values.get(self.name):
+            return self.model.get_by_id(instance._values.get(self.name))
+        return instance._values.get(self.name)
 
 
 class NamedDescriptorResolverMetaClass(type):
@@ -218,7 +255,7 @@ class Query(object):
     def all(self):
         "Return the results represented by this Query as a list."
         return self.rpc_model.search_read(
-            self.domain, self._limit, self._offset, self._order_by,
+            self.domain, self._offset, self._limit, self._order_by,
             self.fields,
             context=self.context
         )
