@@ -36,6 +36,8 @@ class BaseType(object):
             return self
 
     def convert(self, value):
+        if value is None:
+            return
         return self.cast(value)
 
     def __set__(self, instance, value):
