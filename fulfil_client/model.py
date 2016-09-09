@@ -80,6 +80,21 @@ class FloatType(BaseType):
         super(FloatType, self).__init__(*args, **kwargs)
 
 
+class One2ManyType(BaseType):
+
+    def __init__(self, model, *args, **kwargs):
+        self.model = model
+        kwargs.setdefault('cast', list)
+        super(One2ManyType, self).__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if instance._values.get(self.name):
+            return self.model.from_ids(instance._values.get(self.name))
+        return instance._values.get(self.name)
+
+
 class CurrencyType(StringType):
     pass
 
@@ -88,6 +103,13 @@ class ModelType(IntType):
     def __init__(self, model, *args, **kwargs):
         self.model = model
         super(ModelType, self).__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if instance._values.get(self.name):
+            return self.model.get_by_id(instance._values.get(self.name))
+        return instance._values.get(self.name)
 
 
 class NamedDescriptorResolverMetaClass(type):
