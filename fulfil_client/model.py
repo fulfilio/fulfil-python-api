@@ -84,8 +84,8 @@ class FloatType(BaseType):
 
 class One2ManyType(BaseType):
 
-    def __init__(self, model, *args, **kwargs):
-        self.model = model
+    def __init__(self, model_name, *args, **kwargs):
+        self.model_name = model_name
         kwargs.setdefault('cast', list)
         super(One2ManyType, self).__init__(*args, **kwargs)
 
@@ -93,7 +93,8 @@ class One2ManyType(BaseType):
         if instance is None:
             return self
         if instance._values.get(self.name):
-            return self.model.from_ids(instance._values.get(self.name))
+            model = instance.__modelregistry__[self.model_name]
+            return model.from_ids(instance._values.get(self.name))
         return instance._values.get(self.name)
 
 
@@ -102,15 +103,16 @@ class CurrencyType(StringType):
 
 
 class ModelType(IntType):
-    def __init__(self, model, *args, **kwargs):
-        self.model = model
+    def __init__(self, model_name, *args, **kwargs):
+        self.model_name = model_name
         super(ModelType, self).__init__(*args, **kwargs)
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
         if instance._values.get(self.name):
-            return self.model.get_by_id(instance._values.get(self.name))
+            model = instance.__modelregistry__[self.model_name]
+            return model.get_by_id(instance._values.get(self.name))
         return instance._values.get(self.name)
 
 
