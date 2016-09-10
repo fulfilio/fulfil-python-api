@@ -120,9 +120,11 @@ class NamedDescriptorResolverMetaClass(type):
     """
 
     def __new__(cls, classname, bases, class_dict):
-        if not class_dict.get('__abstract__') and \
-                '__model_name__' not in class_dict:
-            raise Exception('__name__ not defined for model')
+        abstract = class_dict.get('__abstract__', False)
+        model_name = class_dict.get('__model_name__')
+
+        if not abstract and not model_name:
+            raise Exception('__model_name__ not defined for model')
 
         fields = class_dict.get('_fields', set([]))
         eager_fields = class_dict.get('_eager_fields', set([]))
@@ -143,7 +145,10 @@ class NamedDescriptorResolverMetaClass(type):
         class_dict['_fields'] = tuple(fields | eager_fields)
 
         # Call super and continue class creation
-        return type.__new__(cls, classname, bases, class_dict)
+        rv = type.__new__(cls, classname, bases, class_dict)
+        if not abstract:
+            rv.__modelregistry__[model_name] = rv
+        return rv
 
 
 class ModificationTrackingDict(dict):
@@ -565,5 +570,6 @@ def model_base(fulfil_client, cache_backend=None):
             'fulfil_client': fulfil_client,
             'cache_backend': cache_backend,
             '__abstract__': True,
+            '__modelregistry__': {},
         },
     )
