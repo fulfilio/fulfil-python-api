@@ -36,6 +36,8 @@ class BaseType(object):
             return self
 
     def convert(self, value):
+        if value is None:
+            return
         return self.cast(value)
 
     def __set__(self, instance, value):
@@ -82,8 +84,8 @@ class FloatType(BaseType):
 
 class One2ManyType(BaseType):
 
-    def __init__(self, model, *args, **kwargs):
-        self.model = model
+    def __init__(self, model_name, *args, **kwargs):
+        self.model_name = model_name
         kwargs.setdefault('cast', list)
         super(One2ManyType, self).__init__(*args, **kwargs)
 
@@ -91,7 +93,8 @@ class One2ManyType(BaseType):
         if instance is None:
             return self
         if instance._values.get(self.name):
-            return self.model.from_ids(instance._values.get(self.name))
+            model = instance.__modelregistry__[self.model_name]
+            return model.from_ids(instance._values.get(self.name))
         return instance._values.get(self.name)
 
 
@@ -100,15 +103,16 @@ class CurrencyType(StringType):
 
 
 class ModelType(IntType):
-    def __init__(self, model, *args, **kwargs):
-        self.model = model
+    def __init__(self, model_name, *args, **kwargs):
+        self.model_name = model_name
         super(ModelType, self).__init__(*args, **kwargs)
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
         if instance._values.get(self.name):
-            return self.model.get_by_id(instance._values.get(self.name))
+            model = instance.__modelregistry__[self.model_name]
+            return model.get_by_id(instance._values.get(self.name))
         return instance._values.get(self.name)
 
 
@@ -118,9 +122,11 @@ class NamedDescriptorResolverMetaClass(type):
     """
 
     def __new__(cls, classname, bases, class_dict):
-        if not class_dict.get('__abstract__') and \
-                '__model_name__' not in class_dict:
-            raise Exception('__name__ not defined for model')
+        abstract = class_dict.get('__abstract__', False)
+        model_name = class_dict.get('__model_name__')
+
+        if not abstract and not model_name:
+            raise Exception('__model_name__ not defined for model')
 
         fields = class_dict.get('_fields', set([]))
         eager_fields = class_dict.get('_eager_fields', set([]))
@@ -141,7 +147,10 @@ class NamedDescriptorResolverMetaClass(type):
         class_dict['_fields'] = tuple(fields | eager_fields)
 
         # Call super and continue class creation
-        return type.__new__(cls, classname, bases, class_dict)
+        rv = type.__new__(cls, classname, bases, class_dict)
+        if not abstract:
+            rv.__modelregistry__[model_name] = rv
+        return rv
 
 
 class ModificationTrackingDict(dict):
@@ -563,5 +572,6 @@ def model_base(fulfil_client, cache_backend=None):
             'fulfil_client': fulfil_client,
             'cache_backend': cache_backend,
             '__abstract__': True,
+            '__modelregistry__': {},
         },
     )
