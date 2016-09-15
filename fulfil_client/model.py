@@ -6,6 +6,7 @@ A collection of model layer APIs to write lesser code
 and better
 """
 import functools
+from datetime import datetime, date
 from copy import copy
 from decimal import Decimal
 
@@ -80,6 +81,20 @@ class FloatType(BaseType):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('cast', float)
         super(FloatType, self).__init__(*args, **kwargs)
+
+
+class DateTime(BaseType):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('cast', datetime)
+        super(DateTime, self).__init__(*args, **kwargs)
+
+
+class Date(BaseType):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('cast', date)
+        super(Date, self).__init__(*args, **kwargs)
 
 
 class One2ManyType(BaseType):
