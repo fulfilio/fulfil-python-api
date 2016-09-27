@@ -16,6 +16,8 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'requests',
+    'money',
+    'babel',
 ]
 
 test_requirements = [
