@@ -6,8 +6,14 @@ Test fulfilio data structures
 pylint option block-disable
 """
 import pytest
+import random
+from decimal import Decimal
+from babel.numbers import format_currency
 
-from fulfil_client.model import ModificationTrackingDict, Query, StringType
+from money import Money
+from fulfil_client.model import (
+    ModificationTrackingDict, Query, StringType, MoneyType
+)
 
 
 @pytest.fixture
@@ -82,6 +88,36 @@ def res_user_model(Model):
 
 
 @pytest.fixture
+def sale_order_model(Model):
+    class SaleOrderModel(Model):
+        __model_name__ = 'sale.sale'
+        _eager_fields = set(['currency.code'])
+
+        number = StringType()
+        total_amount = MoneyType('currency_code')
+
+        @property
+        def currency_code(self):
+            return self._values['currency.code']
+
+    return SaleOrderModel
+
+
+@pytest.fixture
+def product_model(Model):
+    class ProductModel(Model):
+        __model_name__ = 'product.product'
+
+        list_price = MoneyType('currency_code')
+
+        @property
+        def currency_code(self):
+            return 'USD'
+
+    return ProductModel
+
+
+@pytest.fixture
 def module_model(Model):
     class ModuleModel(Model):
         __model_name__ = 'ir.module'
@@ -112,3 +148,32 @@ class TestModel(object):
         user_again = res_user_model.query.get(user.id)
         user.display_name = "something else"
         assert user == user_again
+
+
+class TestMoneyType(object):
+
+    def test_display_format(self, sale_order_model):
+        order = sale_order_model.query.first()
+        assert isinstance(order.total_amount, Money)
+        assert isinstance(order.total_amount.amount, Decimal)
+        assert order.total_amount.format('en_US') == format_currency(
+            order._values['total_amount'],
+            currency=order._values['currency.code'],
+            locale='en_US'
+        )
+        assert order.total_amount.format('fr_FR') == format_currency(
+            order._values['total_amount'],
+            currency=order._values['currency.code'],
+            locale='fr_FR'
+        )
+
+    def test_setting_values(self, product_model):
+        product = product_model.query.first()
+
+        new_price = Decimal(random.choice(xrange(1, 1000)))
+        product.list_price = new_price
+        product.save()
+
+        list_price = product_model.query.first().list_price
+        assert list_price.amount == new_price
+        assert list_price.currency == 'USD' # hard coded in model property
