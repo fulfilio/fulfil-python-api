@@ -169,10 +169,23 @@ class NamedDescriptorResolverMetaClass(type):
         model_name = class_dict.get('__model_name__')
 
         if not abstract and not model_name:
-            raise Exception('__model_name__ not defined for model')
+            for base in bases:
+                if hasattr(base, '__model_name__'):
+                    model_name = base.__model_name__
+                    break
+            else:
+                raise Exception('__model_name__ not defined for model')
 
-        fields = class_dict.get('_fields', set([]))
-        eager_fields = class_dict.get('_eager_fields', set([]))
+        fields = set([])
+        eager_fields = set([])
+        for base in bases:
+            if hasattr(base, '_fields'):
+                fields |= set(base._fields)
+            if hasattr(base, '_eager_fields'):
+                eager_fields |= set(base._eager_fields)
+
+        fields |= class_dict.get('_fields', set([]))
+        eager_fields |= class_dict.get('_eager_fields', set([]))
 
         # Iterate through the new class' __dict__ to:
         #
@@ -186,8 +199,8 @@ class NamedDescriptorResolverMetaClass(type):
                 if attr.eager:
                     eager_fields.add(name)
 
-        class_dict['_eager_fields'] = tuple(eager_fields)
-        class_dict['_fields'] = tuple(fields | eager_fields)
+        class_dict['_eager_fields'] = eager_fields
+        class_dict['_fields'] = fields | eager_fields
 
         # Call super and continue class creation
         rv = type.__new__(cls, classname, bases, class_dict)
@@ -270,7 +283,8 @@ class Query(object):
 
     @property
     def fields(self):
-        return self.instance_class and self.instance_class._fields or None
+        return self.instance_class and tuple(self.instance_class._fields) or \
+                None
 
     def __copy__(self):
         """
@@ -522,7 +536,7 @@ class Model(object):
         """
         Create multiple active resources at once
         """
-        return map(cls, cls.rpc.read(ids, cls._eager_fields))
+        return map(cls, cls.rpc.read(ids, tuple(cls._eager_fields)))
 
     @property
     def changes(self):
@@ -561,7 +575,7 @@ class Model(object):
     @classmethod
     def get_by_id(cls, id):
         "Given an integer ID, fetch the record from fulfil.io"
-        return cls(values=cls.rpc.read([id], cls._eager_fields)[0])
+        return cls(values=cls.rpc.read([id], tuple(cls._eager_fields))[0])
 
     def refresh(self):
         """
@@ -570,7 +584,7 @@ class Model(object):
         """
         assert self.id, "Cannot refresh unsaved record"
         self._values = ModificationTrackingDict(
-            self.rpc.read([self.id], self._fields)[0]
+            self.rpc.read([self.id], tuple(self._fields))[0]
         )
 
     def save(self):
