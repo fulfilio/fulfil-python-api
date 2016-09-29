@@ -9,6 +9,7 @@ import functools
 from datetime import datetime, date
 from copy import copy
 from decimal import Decimal
+from money import Money
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
@@ -113,8 +114,35 @@ class One2ManyType(BaseType):
         return instance._values.get(self.name)
 
 
-class CurrencyType(StringType):
-    pass
+class MoneyType(DecimalType):
+    """
+    Built on top of the decimal field, but also understands the
+    currency with which the amount is defined.
+
+    Usage examples:
+
+        sale.total_amount.amount
+
+    Formatting for web
+
+        sale.total_amount.format()
+
+    :param currency_field: Name of the field that will have the 3 char
+                           currency code
+    """
+
+    def __init__(self, currency_field, *args, **kwargs):
+        self.currency_field = currency_field
+        super(MoneyType, self).__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        if instance:
+            return Money(
+                instance._values.get(self.name, self.default),
+                getattr(instance, self.currency_field)
+            )
+        else:
+            return self
 
 
 class ModelType(IntType):
