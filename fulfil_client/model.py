@@ -40,6 +40,8 @@ class BaseType(object):
     def convert(self, value):
         if value is None:
             return
+        if isinstance(value, self.cast):
+            return value
         return self.cast(value)
 
     def __set__(self, instance, value):
