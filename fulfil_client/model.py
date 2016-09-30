@@ -40,6 +40,8 @@ class BaseType(object):
     def convert(self, value):
         if value is None:
             return
+        if isinstance(value, self.cast):
+            return value
         return self.cast(value)
 
     def __set__(self, instance, value):
@@ -601,6 +603,8 @@ class Model(object):
         return self
 
     def __eq__(self, other):
+        if other is None:
+            return False
         if other.__model_name__ != self.__model_name__:
             # has to be of the same model
             return False
