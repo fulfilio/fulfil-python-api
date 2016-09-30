@@ -601,6 +601,8 @@ class Model(object):
         return self
 
     def __eq__(self, other):
+        if other is None:
+            return False
         if other.__model_name__ != self.__model_name__:
             # has to be of the same model
             return False
