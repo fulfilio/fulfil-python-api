@@ -118,6 +118,20 @@ def product_model(Model):
 
 
 @pytest.fixture
+def contact_model(Model):
+    class ContactModel(Model):
+        __model_name__ = 'party.party'
+
+        name = StringType()
+        credit_limit_amount = MoneyType('currency_code')
+
+        @property
+        def currency_code(self):
+            return 'USD'
+    return ContactModel
+
+
+@pytest.fixture
 def module_model(Model):
     class ModuleModel(Model):
         __model_name__ = 'ir.module'
@@ -177,3 +191,20 @@ class TestMoneyType(object):
         list_price = product_model.query.first().list_price
         assert list_price.amount == new_price
         assert list_price.currency == 'USD' # hard coded in model property
+
+    def test_none(self, contact_model):
+
+        contact = contact_model.query.first()
+
+        contact.credit_limit_amount = None
+        contact.save()
+
+        credit_limit = contact.query.first().credit_limit_amount
+        assert credit_limit == None
+
+        contact.credit_limit_amount = Decimal('100000')
+        contact.save()
+
+        credit_limit = contact.query.first().credit_limit_amount
+        assert credit_limit.amount == Decimal('100000')
+        assert credit_limit.currency == 'USD' # hard coded in model property
