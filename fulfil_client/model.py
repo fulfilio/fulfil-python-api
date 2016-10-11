@@ -139,6 +139,8 @@ class MoneyType(DecimalType):
 
     def __get__(self, instance, owner):
         if instance:
+            if instance._values.get(self.name, self.default) is None:
+                return None
             return Money(
                 instance._values.get(self.name, self.default),
                 getattr(instance, self.currency_field)
