@@ -138,13 +138,14 @@ class MoneyType(DecimalType):
         super(MoneyType, self).__init__(*args, **kwargs)
 
     def __get__(self, instance, owner):
-        if instance:
-            return Money(
-                instance._values.get(self.name, self.default),
-                getattr(instance, self.currency_field)
-            )
-        else:
+        if instance is None:
             return self
+        if instance._values.get(self.name) is None:
+            return instance._values.get(self.name)
+        return Money(
+            instance._values.get(self.name, self.default),
+            getattr(instance, self.currency_field)
+        )
 
 
 class ModelType(IntType):
