@@ -5,6 +5,7 @@ Fulfil.IO Model Helper
 A collection of model layer APIs to write lesser code
 and better
 """
+import logging
 import functools
 from datetime import datetime, date
 from copy import copy
@@ -13,6 +14,8 @@ from money import Money
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
+
+cache_logger = logging.getLogger('fulfil_client.cache')
 
 
 class BaseType(object):
@@ -102,8 +105,9 @@ class Date(BaseType):
 
 class One2ManyType(BaseType):
 
-    def __init__(self, model_name, *args, **kwargs):
+    def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
+        self.cache = cache
         kwargs.setdefault('cast', list)
         super(One2ManyType, self).__init__(*args, **kwargs)
 
@@ -112,6 +116,8 @@ class One2ManyType(BaseType):
             return self
         if instance._values.get(self.name):
             model = instance.__modelregistry__[self.model_name]
+            if self.cache:
+                return model.from_cache(instance._values.get(self.name))
             return model.from_ids(instance._values.get(self.name))
         return instance._values.get(self.name)
 
@@ -150,8 +156,9 @@ class MoneyType(DecimalType):
 
 
 class ModelType(IntType):
-    def __init__(self, model_name, *args, **kwargs):
+    def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
+        self.cache = cache
         super(ModelType, self).__init__(*args, **kwargs)
 
     def __get__(self, instance, owner):
@@ -159,6 +166,8 @@ class ModelType(IntType):
             return self
         if instance._values.get(self.name):
             model = instance.__modelregistry__[self.model_name]
+            if self.cache:
+                return model.from_cache(instance._values.get(self.name))
             return model.get_by_id(instance._values.get(self.name))
         return instance._values.get(self.name)
 
@@ -518,11 +527,16 @@ class Model(object):
         Check if a record is in cache. If it is load from there, if not
         load the record and then cache it.
         """
+        if isinstance(id, (list, tuple)):
+            return map(cls.from_cache, id)
+
         key = cls.get_cache_key(id)
 
         if cls.cache_backend and cls.cache_backend.exists(key):
+            cache_logger.debug("HIT::%s" % key)
             return cls(id=id, values=loads(cls.cache_backend.get(key)))
 
+        cache_logger.warn("MISS::%s" % key)
         record = cls(id=id)
         record.refresh()
         record.store_in_cache()
