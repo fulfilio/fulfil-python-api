@@ -1,9 +1,11 @@
 import json
+import logging
 import requests
 from functools import partial, wraps
 from .serialization import JSONDecoder, JSONEncoder
 
 
+request_logger = logging.getLogger('fulfil_client.request')
 dumps = partial(json.dumps, cls=JSONEncoder)
 loads = partial(json.loads, object_hook=JSONDecoder())
 
@@ -87,6 +89,11 @@ class Model(object):
         @json_response
         def proxy_method(*args, **kwargs):
             context = kwargs.pop('context', self.client.context)
+            request_logger.debug(
+                "%s.%s::%s::%s" % (
+                    self.model_name, name, args, kwargs
+                )
+            )
             return self.client.session.put(
                 self.path + '/%s' % name,
                 dumps(args),
