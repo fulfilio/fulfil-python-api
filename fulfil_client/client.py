@@ -96,7 +96,8 @@ class Model(object):
     def __getattr__(self, name):
         @json_response
         def proxy_method(*args, **kwargs):
-            context = kwargs.pop('context', self.client.context)
+            context = self.client.context.copy()
+            context.update(kwargs.pop('context', {}))
             request_logger.debug(
                 "%s.%s::%s::%s" % (
                     self.model_name, name, args, kwargs
