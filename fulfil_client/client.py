@@ -26,16 +26,24 @@ def json_response(function):
 
 class Client(object):
 
-    def __init__(self, subdomain, api_key):
+    def __init__(self, subdomain, api_key, user_agent="Python Client"):
         self.subdomain = subdomain
         self.api_key = api_key
         self.base_url = 'https://%s.fulfil.io/api/v1' % self.subdomain
 
         self.session = requests.Session()
-        self.session.headers.update({'x-api-key': api_key})
+        self.session.headers.update({
+            'x-api-key': api_key,
+            'User-Agent': user_agent,
+        })
 
         self.context = {}
         self.refresh_context()
+
+    def set_user_agent(self, user_agent):
+        self.session.headers.update({
+            'User-Agent': user_agent
+        })
 
     def refresh_context(self):
         """
@@ -88,7 +96,8 @@ class Model(object):
     def __getattr__(self, name):
         @json_response
         def proxy_method(*args, **kwargs):
-            context = kwargs.pop('context', self.client.context)
+            context = self.client.context.copy()
+            context.update(kwargs.pop('context', {}))
             request_logger.debug(
                 "%s.%s::%s::%s" % (
                     self.model_name, name, args, kwargs
