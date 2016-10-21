@@ -26,16 +26,24 @@ def json_response(function):
 
 class Client(object):
 
-    def __init__(self, subdomain, api_key):
+    def __init__(self, subdomain, api_key, user_agent="Python Client"):
         self.subdomain = subdomain
         self.api_key = api_key
         self.base_url = 'https://%s.fulfil.io/api/v1' % self.subdomain
 
         self.session = requests.Session()
-        self.session.headers.update({'x-api-key': api_key})
+        self.session.headers.update({
+            'x-api-key': api_key,
+            'User-Agent': user_agent,
+        })
 
         self.context = {}
         self.refresh_context()
+
+    def set_user_agent(self, user_agent):
+        self.session.headers.update({
+            'User-Agent': user_agent
+        })
 
     def refresh_context(self):
         """
@@ -56,6 +64,9 @@ class Client(object):
 
     def record(self, model_name, id):
         return Record(self.model(model_name), id)
+
+    def report(self, name):
+        return Report(self, name)
 
 
 class Record(object):
@@ -88,7 +99,8 @@ class Model(object):
     def __getattr__(self, name):
         @json_response
         def proxy_method(*args, **kwargs):
-            context = kwargs.pop('context', self.client.context)
+            context = self.client.context.copy()
+            context.update(kwargs.pop('context', {}))
             request_logger.debug(
                 "%s.%s::%s::%s" % (
                     self.model_name, name, args, kwargs
@@ -149,5 +161,31 @@ class Model(object):
                 'per_page': per_page,
                 'field': fields,
                 'context': dumps(context or self.client.context),
+            }
+        )
+
+
+class Report(object):
+
+    def __init__(self, client, report_name):
+        self.client = client
+        self.report_name = report_name
+
+    @property
+    def path(self):
+        return '%s/report/%s' % (self.client.base_url, self.report_name)
+
+    @json_response
+    def execute(self, records=None, data=None, **kwargs):
+        context = self.client.context.copy()
+        context.update(kwargs.pop('context', {}))
+        return self.client.session.put(
+            self.path,
+            json={
+                'objects': records or [],
+                'data': data or {},
+            },
+            params={
+                'context': dumps(context),
             }
         )

@@ -30,4 +30,4 @@ def test_find_no_filter(client):
 def test_raises_server_error(client):
     Model = client.model('ir.model')
     with pytest.raises(ServerError):
-        Model.search([], context=1)
+        Model.search(1)
