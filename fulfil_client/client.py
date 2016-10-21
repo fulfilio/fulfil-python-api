@@ -65,6 +65,9 @@ class Client(object):
     def record(self, model_name, id):
         return Record(self.model(model_name), id)
 
+    def report(self, name):
+        return Report(self, name)
+
 
 class Record(object):
     def __init__(self, model, id):
@@ -158,5 +161,31 @@ class Model(object):
                 'per_page': per_page,
                 'field': fields,
                 'context': dumps(context or self.client.context),
+            }
+        )
+
+
+class Report(object):
+
+    def __init__(self, client, report_name):
+        self.client = client
+        self.report_name = report_name
+
+    @property
+    def path(self):
+        return '%s/report/%s' % (self.client.base_url, self.report_name)
+
+    @json_response
+    def execute(self, records=None, data=None, **kwargs):
+        context = self.client.context.copy()
+        context.update(kwargs.pop('context', {}))
+        return self.client.session.put(
+            self.path,
+            json={
+                'objects': records or [],
+                'data': data or {},
+            },
+            params={
+                'context': dumps(context),
             }
         )
