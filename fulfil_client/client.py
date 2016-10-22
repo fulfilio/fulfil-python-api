@@ -243,7 +243,12 @@ class AsyncResult(object):
         Refresh the status of the task from server if required.
         """
         if self.state in (self.PENDING, self.STARTED):
-            response, = self._fetch_result()
+            try:
+                response, = self._fetch_result()['tasks']
+            except (KeyError, ValueError):
+                raise Exception(
+                    "Unable to find results for task."
+                )
 
             if 'error' in response:
                 self.state == self.FAILURE
