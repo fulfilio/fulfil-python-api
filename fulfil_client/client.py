@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+from datetime import datetime
 from functools import partial, wraps
 from .serialization import JSONDecoder, JSONEncoder
 
@@ -189,3 +190,99 @@ class Report(object):
                 'context': dumps(context),
             }
         )
+
+
+class AsyncResult(object):
+    """
+    When the server returns an AsyncResult (usually for long running tasks),
+    an instance of this class is created in the response. The object provides
+    a convenient wrapper with which you can poll for the status of the task
+    and result.
+    """
+
+    PENDING = 'PENDING'
+    STARTED = 'STARTED'
+    FAILURE = 'FAILURE'
+    SUCCESS = 'SUCCESS'
+    RETRY = 'RETRY'
+
+    def __init__(self, task_id, token, client):
+        self.task_id = task_id
+        self.token = token
+        self.client = client
+        self.result = None
+        self.state = self.PENDING
+        self.start_time = datetime.utcnow()
+
+    @property
+    def path(self):
+        return '%s/async-result' % (self.client.base_url)
+
+    def bind(self, client):
+        self.client = client
+        return self
+
+    @json_response
+    def _fetch_result(self):
+        if self.client is None:
+            raise Exception(
+                "Unbound AsyncResults cannot refresh status.\n"
+                "Hint: Bind `result.bind(client)` and try again."
+            )
+        return self.client.session.post(
+            self.path,
+            json={
+                'tasks': [
+                    [self.task_id, self.token]
+                ]
+            },
+        )
+
+    def refresh_if_needed(self):
+        """
+        Refresh the status of the task from server if required.
+        """
+        if self.state in (self.PENDING, self.STARTED):
+            response, = self._fetch_result()
+
+            if 'error' in response:
+                self.state == self.FAILURE
+                raise ServerError(response['error'])
+
+            if 'state' in response:
+                self.state = response['state']
+                self.result = response['result']
+
+    def failed(self):
+        """
+        Returns true of the task failed
+        """
+        self.refresh_if_needed()
+        return self.state == self.FAILURE
+
+    def ready(self):
+        """
+        Returns True if the task has been executed.
+
+        If the task is still running, pending, or is waiting for retry then
+        False is returned.
+        """
+        self.refresh_if_needed()
+        return self.state == self.SUCCESS
+
+    def wait(self, timeout=None):
+        """
+        Wait until task is ready, and return its result.
+
+        Not implemented yet
+        """
+        raise Exception("Not implemented yet")
+
+    @property
+    def time_lapsed(self):
+        """
+        Time lapsed since the task was started
+
+        Returned only when the task is still in progress
+        """
+        return datetime.utcnow() - self.start_time
