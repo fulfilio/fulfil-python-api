@@ -48,6 +48,16 @@ JSONDecoder.register(
 )
 
 
+def parse_async_result(dct):
+    from client import AsyncResult
+    return AsyncResult(dct['task_id'], dct['token'], None)
+
+
+JSONDecoder.register(
+    'AsyncResult', parse_async_result
+)
+
+
 class JSONEncoder(json.JSONEncoder):
 
     serializers = {}
