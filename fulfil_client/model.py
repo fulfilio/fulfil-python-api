@@ -499,6 +499,7 @@ class Model(object):
 
     fulfil_client = None
     cache_backend = None
+    cache_expire = None
 
     id = IntType()
 
@@ -547,7 +548,9 @@ class Model(object):
         Save the values to a cache.
         """
         if self.cache_backend:
-            self.cache_backend.set(self.cache_key, dumps(self._values))
+            self.cache_backend.set(
+                self.cache_key, dumps(self._values), self.cache_expire
+            )
 
     @classmethod
     def from_ids(cls, ids):
@@ -635,7 +638,7 @@ class Model(object):
         return True
 
 
-def model_base(fulfil_client, cache_backend=None):
+def model_base(fulfil_client, cache_backend=None, cache_expire=10 * 60):
     """
     Return a Base Model class that binds to the fulfil client instance and
     the cache instance.
@@ -648,6 +651,7 @@ def model_base(fulfil_client, cache_backend=None):
         {
             'fulfil_client': fulfil_client,
             'cache_backend': cache_backend,
+            'cache_expire': cache_expire,
             '__abstract__': True,
             '__modelregistry__': {},
         },
