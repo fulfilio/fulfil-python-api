@@ -156,6 +156,14 @@ class MoneyType(DecimalType):
 
 
 class ModelType(IntType):
+    """
+    Builds a field that represents a Foreign Key relationship to another
+    model.
+
+    :param model_name: Name of the model to which this model has a FK
+    :param cache: If set, it looks up the record in the cache backend of the
+                  underlying model before querying the server to fetch records.
+    """
     def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
         self.cache = cache
