@@ -598,6 +598,12 @@ class Model(object):
         "Given an integer ID, fetch the record from fulfil.io"
         return cls(values=cls.rpc.read([id], tuple(cls._eager_fields))[0])
 
+    def delete(self):
+        """
+        Delete the record
+        """
+        return self.rpc.delete([self.id])
+
     def refresh(self):
         """
         Refresh a record by fetching again from the API.
