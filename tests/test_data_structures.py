@@ -163,6 +163,11 @@ class TestModel(object):
         user.display_name = "something else"
         assert user == user_again
 
+    def test_api_url(self, res_user_model):
+        user = res_user_model.query.first()
+        assert user.__url__
+        assert user.__client_url__
+
 
 class TestMoneyType(object):
 

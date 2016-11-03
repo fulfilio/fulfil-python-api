@@ -651,6 +651,25 @@ class Model(object):
             return False
         return True
 
+    @property
+    def __url__(self):
+        "Return the API URL for the record"
+        return '/'.join([
+            self.rpc.client.base_url,
+            self.__model_name__,
+            unicode(self.id)
+        ])
+
+    @property
+    def __client_url__(self):
+        "Return the Client URL for the record"
+        return '/'.join([
+            self.rpc.client.host,
+            'client/#/model',
+            self.__model_name__,
+            unicode(self.id)
+        ])
+
 
 def model_base(fulfil_client, cache_backend=None, cache_expire=10 * 60):
     """

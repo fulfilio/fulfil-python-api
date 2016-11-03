@@ -30,7 +30,8 @@ class Client(object):
     def __init__(self, subdomain, api_key, user_agent="Python Client"):
         self.subdomain = subdomain
         self.api_key = api_key
-        self.base_url = 'https://%s.fulfil.io/api/v1' % self.subdomain
+        self.host = 'https://%s.fulfil.io' % self.subdomain
+        self.base_url = '%s/api/v1' % self.host
 
         self.session = requests.Session()
         self.session.headers.update({
