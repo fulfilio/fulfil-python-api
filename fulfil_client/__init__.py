@@ -2,7 +2,7 @@
 
 __author__ = 'Fulfil.IO Inc.'
 __email__ = 'hello@fulfil.io'
-__version__ = '0.6.11'
+__version__ = '0.6.12'
 
 
 from .client import Client, Model, ServerError

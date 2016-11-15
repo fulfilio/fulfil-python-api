@@ -540,10 +540,11 @@ class Model(object):
             return map(cls.from_cache, id)
 
         key = cls.get_cache_key(id)
+        cached_value = cls.cache_backend and cls.cache_backend.get(key)
 
-        if cls.cache_backend and cls.cache_backend.exists(key):
+        if cached_value:
             cache_logger.debug("HIT::%s" % key)
-            return cls(id=id, values=loads(cls.cache_backend.get(key)))
+            return cls(id=id, values=loads(cached_value))
 
         cache_logger.warn("MISS::%s" % key)
         record = cls(id=id)
