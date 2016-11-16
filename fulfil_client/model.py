@@ -561,6 +561,10 @@ class Model(object):
                 self.cache_key, dumps(self._values), self.cache_expire
             )
 
+    def invalidate_cache(self):
+        if self.cache_backend:
+            self.cache_backend.delete(self.cache_key)
+
     @classmethod
     def from_ids(cls, ids):
         """
@@ -618,6 +622,8 @@ class Model(object):
         Refresh a record by fetching again from the API.
         This also resets the modifications in the record.
         """
+        self.invalidate_cache()
+
         assert self.id, "Cannot refresh unsaved record"
         self._values = ModificationTrackingDict(
             self.rpc.read([self.id], tuple(self._fields))[0]
