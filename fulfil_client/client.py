@@ -70,6 +70,24 @@ class Client(object):
     def report(self, name):
         return Report(self, name)
 
+    def login(self, login, password):
+        """
+        Attempts a login to the remote server
+        and on success returns user id and session
+        or None
+
+        Warning: Do not depend on this. This will be deprecated
+        with SSO.
+        """
+        rv = self.session.post(
+            self.host,
+            dumps({
+                "method": "common.db.login",
+                "params": [login, password]
+            }),
+        )
+        return loads(rv.content)['result']
+
 
 class Record(object):
     def __init__(self, model, id):
