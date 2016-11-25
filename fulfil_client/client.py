@@ -150,6 +150,22 @@ class Model(object):
             }
         )
 
+    def search_read_all(self, domain, order, fields, batch_size=500):
+        """
+        An endless iterator that iterates over records.
+
+        :param domain: A search domain
+        :param order: The order clause for search read
+        :param fields: The fields argument for search_read
+        :param batch_size: The optimal batch size when sending paginated
+                           requests
+        """
+        count = self.search_count(domain)
+        for offset in xrange(0, count + batch_size, batch_size):
+            for record in self.search_read(
+                    domain, offset, batch_size, order, fields):
+                yield record
+
     @json_response
     def find(self, filter=None, page=1, per_page=10, fields=None, context=None):
         """
