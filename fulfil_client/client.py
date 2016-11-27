@@ -1,9 +1,12 @@
 import json
+import logging
 import requests
+from datetime import datetime
 from functools import partial, wraps
 from .serialization import JSONDecoder, JSONEncoder
 
 
+request_logger = logging.getLogger('fulfil_client.request')
 dumps = partial(json.dumps, cls=JSONEncoder)
 loads = partial(json.loads, object_hook=JSONDecoder())
 
@@ -24,16 +27,25 @@ def json_response(function):
 
 class Client(object):
 
-    def __init__(self, subdomain, api_key):
+    def __init__(self, subdomain, api_key, user_agent="Python Client"):
         self.subdomain = subdomain
         self.api_key = api_key
-        self.base_url = 'https://%s.fulfil.io/api/v1' % self.subdomain
+        self.host = 'https://%s.fulfil.io' % self.subdomain
+        self.base_url = '%s/api/v1' % self.host
 
         self.session = requests.Session()
-        self.session.headers.update({'x-api-key': api_key})
+        self.session.headers.update({
+            'x-api-key': api_key,
+            'User-Agent': user_agent,
+        })
 
         self.context = {}
         self.refresh_context()
+
+    def set_user_agent(self, user_agent):
+        self.session.headers.update({
+            'User-Agent': user_agent
+        })
 
     def refresh_context(self):
         """
@@ -54,6 +66,27 @@ class Client(object):
 
     def record(self, model_name, id):
         return Record(self.model(model_name), id)
+
+    def report(self, name):
+        return Report(self, name)
+
+    def login(self, login, password):
+        """
+        Attempts a login to the remote server
+        and on success returns user id and session
+        or None
+
+        Warning: Do not depend on this. This will be deprecated
+        with SSO.
+        """
+        rv = self.session.post(
+            self.host,
+            dumps({
+                "method": "common.db.login",
+                "params": [login, password]
+            }),
+        )
+        return loads(rv.content)['result']
 
 
 class Record(object):
@@ -86,7 +119,13 @@ class Model(object):
     def __getattr__(self, name):
         @json_response
         def proxy_method(*args, **kwargs):
-            context = kwargs.pop('context', self.client.context)
+            context = self.client.context.copy()
+            context.update(kwargs.pop('context', {}))
+            request_logger.debug(
+                "%s.%s::%s::%s" % (
+                    self.model_name, name, args, kwargs
+                )
+            )
             return self.client.session.put(
                 self.path + '/%s' % name,
                 dumps(args),
@@ -110,6 +149,22 @@ class Model(object):
                 'context': dumps(ctx),
             }
         )
+
+    def search_read_all(self, domain, order, fields, batch_size=500):
+        """
+        An endless iterator that iterates over records.
+
+        :param domain: A search domain
+        :param order: The order clause for search read
+        :param fields: The fields argument for search_read
+        :param batch_size: The optimal batch size when sending paginated
+                           requests
+        """
+        count = self.search_count(domain)
+        for offset in xrange(0, count + batch_size, batch_size):
+            for record in self.search_read(
+                    domain, offset, batch_size, order, fields):
+                yield record
 
     @json_response
     def find(self, filter=None, page=1, per_page=10, fields=None, context=None):
@@ -144,3 +199,130 @@ class Model(object):
                 'context': dumps(context or self.client.context),
             }
         )
+
+
+class Report(object):
+
+    def __init__(self, client, report_name):
+        self.client = client
+        self.report_name = report_name
+
+    @property
+    def path(self):
+        return '%s/report/%s' % (self.client.base_url, self.report_name)
+
+    @json_response
+    def execute(self, records=None, data=None, **kwargs):
+        context = self.client.context.copy()
+        context.update(kwargs.pop('context', {}))
+        return self.client.session.put(
+            self.path,
+            json={
+                'objects': records or [],
+                'data': data or {},
+            },
+            params={
+                'context': dumps(context),
+            }
+        )
+
+
+class AsyncResult(object):
+    """
+    When the server returns an AsyncResult (usually for long running tasks),
+    an instance of this class is created in the response. The object provides
+    a convenient wrapper with which you can poll for the status of the task
+    and result.
+    """
+
+    PENDING = 'PENDING'
+    STARTED = 'STARTED'
+    FAILURE = 'FAILURE'
+    SUCCESS = 'SUCCESS'
+    RETRY = 'RETRY'
+
+    def __init__(self, task_id, token, client):
+        self.task_id = task_id
+        self.token = token
+        self.client = client
+        self.result = None
+        self.state = self.PENDING
+        self.start_time = datetime.utcnow()
+
+    @property
+    def path(self):
+        return '%s/async-result' % (self.client.base_url)
+
+    def bind(self, client):
+        self.client = client
+        return self
+
+    @json_response
+    def _fetch_result(self):
+        if self.client is None:
+            raise Exception(
+                "Unbound AsyncResults cannot refresh status.\n"
+                "Hint: Bind `result.bind(client)` and try again."
+            )
+        return self.client.session.post(
+            self.path,
+            json={
+                'tasks': [
+                    [self.task_id, self.token]
+                ]
+            },
+        )
+
+    def refresh_if_needed(self):
+        """
+        Refresh the status of the task from server if required.
+        """
+        if self.state in (self.PENDING, self.STARTED):
+            try:
+                response, = self._fetch_result()['tasks']
+            except (KeyError, ValueError):
+                raise Exception(
+                    "Unable to find results for task."
+                )
+
+            if 'error' in response:
+                self.state == self.FAILURE
+                raise ServerError(response['error'])
+
+            if 'state' in response:
+                self.state = response['state']
+                self.result = response['result']
+
+    def failed(self):
+        """
+        Returns true of the task failed
+        """
+        self.refresh_if_needed()
+        return self.state == self.FAILURE
+
+    def ready(self):
+        """
+        Returns True if the task has been executed.
+
+        If the task is still running, pending, or is waiting for retry then
+        False is returned.
+        """
+        self.refresh_if_needed()
+        return self.state == self.SUCCESS
+
+    def wait(self, timeout=None):
+        """
+        Wait until task is ready, and return its result.
+
+        Not implemented yet
+        """
+        raise Exception("Not implemented yet")
+
+    @property
+    def time_lapsed(self):
+        """
+        Time lapsed since the task was started
+
+        Returned only when the task is still in progress
+        """
+        return datetime.utcnow() - self.start_time

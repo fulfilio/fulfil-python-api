@@ -5,13 +5,17 @@ Fulfil.IO Model Helper
 A collection of model layer APIs to write lesser code
 and better
 """
+import logging
 import functools
 from datetime import datetime, date
 from copy import copy
 from decimal import Decimal
+from money import Money
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
+
+cache_logger = logging.getLogger('fulfil_client.cache')
 
 
 class BaseType(object):
@@ -39,6 +43,8 @@ class BaseType(object):
     def convert(self, value):
         if value is None:
             return
+        if isinstance(value, self.cast):
+            return value
         return self.cast(value)
 
     def __set__(self, instance, value):
@@ -99,8 +105,9 @@ class Date(BaseType):
 
 class One2ManyType(BaseType):
 
-    def __init__(self, model_name, *args, **kwargs):
+    def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
+        self.cache = cache
         kwargs.setdefault('cast', list)
         super(One2ManyType, self).__init__(*args, **kwargs)
 
@@ -109,17 +116,57 @@ class One2ManyType(BaseType):
             return self
         if instance._values.get(self.name):
             model = instance.__modelregistry__[self.model_name]
+            if self.cache:
+                return model.from_cache(instance._values.get(self.name))
             return model.from_ids(instance._values.get(self.name))
         return instance._values.get(self.name)
 
 
-class CurrencyType(StringType):
-    pass
+class MoneyType(DecimalType):
+    """
+    Built on top of the decimal field, but also understands the
+    currency with which the amount is defined.
+
+    Usage examples:
+
+        sale.total_amount.amount
+
+    Formatting for web
+
+        sale.total_amount.format()
+
+    :param currency_field: Name of the field that will have the 3 char
+                           currency code
+    """
+
+    def __init__(self, currency_field, *args, **kwargs):
+        self.currency_field = currency_field
+        super(MoneyType, self).__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        if instance:
+            if instance._values.get(self.name, self.default) is None:
+                return None
+            return Money(
+                instance._values.get(self.name, self.default),
+                getattr(instance, self.currency_field)
+            )
+        else:
+            return self
 
 
 class ModelType(IntType):
-    def __init__(self, model_name, *args, **kwargs):
+    """
+    Builds a field that represents a Foreign Key relationship to another
+    model.
+
+    :param model_name: Name of the model to which this model has a FK
+    :param cache: If set, it looks up the record in the cache backend of the
+                  underlying model before querying the server to fetch records.
+    """
+    def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
+        self.cache = cache
         super(ModelType, self).__init__(*args, **kwargs)
 
     def __get__(self, instance, owner):
@@ -127,6 +174,8 @@ class ModelType(IntType):
             return self
         if instance._values.get(self.name):
             model = instance.__modelregistry__[self.model_name]
+            if self.cache:
+                return model.from_cache(instance._values.get(self.name))
             return model.get_by_id(instance._values.get(self.name))
         return instance._values.get(self.name)
 
@@ -141,10 +190,23 @@ class NamedDescriptorResolverMetaClass(type):
         model_name = class_dict.get('__model_name__')
 
         if not abstract and not model_name:
-            raise Exception('__model_name__ not defined for model')
+            for base in bases:
+                if hasattr(base, '__model_name__'):
+                    model_name = base.__model_name__
+                    break
+            else:
+                raise Exception('__model_name__ not defined for model')
 
-        fields = class_dict.get('_fields', set([]))
-        eager_fields = class_dict.get('_eager_fields', set([]))
+        fields = set([])
+        eager_fields = set([])
+        for base in bases:
+            if hasattr(base, '_fields'):
+                fields |= set(base._fields)
+            if hasattr(base, '_eager_fields'):
+                eager_fields |= set(base._eager_fields)
+
+        fields |= class_dict.get('_fields', set([]))
+        eager_fields |= class_dict.get('_eager_fields', set([]))
 
         # Iterate through the new class' __dict__ to:
         #
@@ -158,8 +220,8 @@ class NamedDescriptorResolverMetaClass(type):
                 if attr.eager:
                     eager_fields.add(name)
 
-        class_dict['_eager_fields'] = tuple(eager_fields)
-        class_dict['_fields'] = tuple(fields | eager_fields)
+        class_dict['_eager_fields'] = eager_fields
+        class_dict['_fields'] = fields | eager_fields
 
         # Call super and continue class creation
         rv = type.__new__(cls, classname, bases, class_dict)
@@ -242,7 +304,8 @@ class Query(object):
 
     @property
     def fields(self):
-        return self.instance_class and self.instance_class._fields or None
+        return self.instance_class and tuple(self.instance_class._fields) or \
+                None
 
     def __copy__(self):
         """
@@ -444,6 +507,7 @@ class Model(object):
 
     fulfil_client = None
     cache_backend = None
+    cache_expire = None
 
     id = IntType()
 
@@ -472,11 +536,17 @@ class Model(object):
         Check if a record is in cache. If it is load from there, if not
         load the record and then cache it.
         """
+        if isinstance(id, (list, tuple)):
+            return map(cls.from_cache, id)
+
         key = cls.get_cache_key(id)
+        cached_value = cls.cache_backend and cls.cache_backend.get(key)
 
-        if cls.cache_backend and cls.cache_backend.exists(key):
-            return cls(id=id, values=loads(cls.cache_backend.get(key)))
+        if cached_value:
+            cache_logger.debug("HIT::%s" % key)
+            return cls(id=id, values=loads(cached_value))
 
+        cache_logger.warn("MISS::%s" % key)
         record = cls(id=id)
         record.refresh()
         record.store_in_cache()
@@ -487,14 +557,20 @@ class Model(object):
         Save the values to a cache.
         """
         if self.cache_backend:
-            self.cache_backend.set(self.cache_key, dumps(self._values))
+            self.cache_backend.set(
+                self.cache_key, dumps(self._values), self.cache_expire
+            )
+
+    def invalidate_cache(self):
+        if self.cache_backend:
+            self.cache_backend.delete(self.cache_key)
 
     @classmethod
     def from_ids(cls, ids):
         """
         Create multiple active resources at once
         """
-        return map(cls, cls.rpc.read(ids, cls._eager_fields))
+        return map(cls, cls.rpc.read(ids, tuple(cls._eager_fields)))
 
     @property
     def changes(self):
@@ -533,16 +609,24 @@ class Model(object):
     @classmethod
     def get_by_id(cls, id):
         "Given an integer ID, fetch the record from fulfil.io"
-        return cls(values=cls.rpc.read([id], cls._eager_fields)[0])
+        return cls(values=cls.rpc.read([id], tuple(cls._eager_fields))[0])
+
+    def delete(self):
+        """
+        Delete the record
+        """
+        return self.rpc.delete([self.id])
 
     def refresh(self):
         """
         Refresh a record by fetching again from the API.
         This also resets the modifications in the record.
         """
+        self.invalidate_cache()
+
         assert self.id, "Cannot refresh unsaved record"
         self._values = ModificationTrackingDict(
-            self.rpc.read([self.id], self._fields)[0]
+            self.rpc.read([self.id], tuple(self._fields))[0]
         )
 
     def save(self):
@@ -559,6 +643,8 @@ class Model(object):
         return self
 
     def __eq__(self, other):
+        if other is None:
+            return False
         if other.__model_name__ != self.__model_name__:
             # has to be of the same model
             return False
@@ -572,8 +658,27 @@ class Model(object):
             return False
         return True
 
+    @property
+    def __url__(self):
+        "Return the API URL for the record"
+        return '/'.join([
+            self.rpc.client.base_url,
+            self.__model_name__,
+            unicode(self.id)
+        ])
 
-def model_base(fulfil_client, cache_backend=None):
+    @property
+    def __client_url__(self):
+        "Return the Client URL for the record"
+        return '/'.join([
+            self.rpc.client.host,
+            'client/#/model',
+            self.__model_name__,
+            unicode(self.id)
+        ])
+
+
+def model_base(fulfil_client, cache_backend=None, cache_expire=10 * 60):
     """
     Return a Base Model class that binds to the fulfil client instance and
     the cache instance.
@@ -586,6 +691,7 @@ def model_base(fulfil_client, cache_backend=None):
         {
             'fulfil_client': fulfil_client,
             'cache_backend': cache_backend,
+            'cache_expire': cache_expire,
             '__abstract__': True,
             '__modelregistry__': {},
         },
