@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import datetime
 from decimal import Decimal
+from collections import namedtuple
 try:
     import simplejson as json
 except ImportError:
@@ -45,6 +46,14 @@ JSONDecoder.register(
 )
 JSONDecoder.register(
     'Decimal', lambda dct: Decimal(dct['decimal'])
+)
+
+
+dummy_record = namedtuple('Record', ['model_name', 'id', 'rec_name'])
+JSONDecoder.register(
+    'Model', lambda dct: dummy_record(
+        dct['model_name'], dct['id'], dct['rec_name']
+    )
 )
 
 
