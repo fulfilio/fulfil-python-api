@@ -27,10 +27,15 @@ def json_response(function):
 
 class Client(object):
 
-    def __init__(self, subdomain, api_key, user_agent="Python Client"):
+    def __init__(self, subdomain, api_key, user_agent="Python Client", route_fulfil=True, secure=True):
         self.subdomain = subdomain
         self.api_key = api_key
-        self.host = 'https://%s.fulfil.io' % self.subdomain
+        if secure : self.protocol = 'https'
+        if not secure : self.protocol = 'http'
+        if route_fulfil :
+            self.host = '%s://%s.fulfil.io' % (self.protocol, self.subdomain)
+        if not route_fulfil :
+            self.host = '%s://%s'  % (self.protocol, self.subdomain)
         self.base_url = '%s/api/v1' % self.host
 
         self.session = requests.Session()
