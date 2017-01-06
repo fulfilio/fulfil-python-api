@@ -150,7 +150,7 @@ class Model(object):
             }
         )
 
-    def search_read_all(self, domain, order, fields, batch_size=500):
+    def search_read_all(self, domain, order, fields, batch_size=500, context=None):
         """
         An endless iterator that iterates over records.
 
@@ -160,10 +160,12 @@ class Model(object):
         :param batch_size: The optimal batch size when sending paginated
                            requests
         """
-        count = self.search_count(domain)
+        if context is None:
+            context = {}
+        count = self.search_count(domain, context=context)
         for offset in xrange(0, count + batch_size, batch_size):
             for record in self.search_read(
-                    domain, offset, batch_size, order, fields):
+                    domain, offset, batch_size, order, fields, context=context):
                 yield record
 
     @json_response
