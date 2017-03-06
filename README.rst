@@ -160,6 +160,18 @@ Sale
     }])
 
 
+Using Session Auth
+------------------
+
+.. code:: python
+
+    from fulfil_client import Client, SessionAuth
+
+    client = Client('subdomain')
+    user_id, session = client.login('username', 'password')
+    client.set_auth(SessionAuth(user_id, session))
+
+
 Credits
 ---------
 
