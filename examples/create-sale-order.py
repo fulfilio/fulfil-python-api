@@ -112,7 +112,7 @@ def create_address(customer_id, data):
 
     country, = Country.find([('code', '=', data['country'])])
     state, = Subdivision.find([
-        ('code', 'ilike', '%-' + data['state']),    # state codes are US-CA, IN-KL
+        ('code', 'ilike', '%-' + data['state']),  # state codes are US-CA, IN-KL
         ('country', '=', country['id'])
     ])
 

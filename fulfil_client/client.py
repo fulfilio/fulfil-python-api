@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import partial, wraps
 
 import requests
-from requests._internal_utils import to_native_string
 from .serialization import JSONDecoder, JSONEncoder
 
 
@@ -71,8 +70,8 @@ class APIKeyAuth(requests.auth.AuthBase):
 class Client(object):
 
     def __init__(self, subdomain,
-            api_key=None, context=None, auth=None,
-            user_agent="Python Client"):
+                 api_key=None, context=None, auth=None,
+                 user_agent="Python Client"):
         self.subdomain = subdomain
 
         self.host = 'https://%s.fulfil.io' % self.subdomain
@@ -218,7 +217,8 @@ class Model(object):
             }
         )
 
-    def search_read_all(self, domain, order, fields, batch_size=500, context=None):
+    def search_read_all(self, domain, order, fields, batch_size=500,
+                        context=None):
         """
         An endless iterator that iterates over records.
 

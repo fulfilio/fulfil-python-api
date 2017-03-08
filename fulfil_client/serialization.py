@@ -23,6 +23,7 @@ class JSONDecoder(object):
             return self.decoders[dct['__class__']](dct)
         return dct
 
+
 JSONDecoder.register(
     'datetime',
     lambda dct: datetime.datetime(
