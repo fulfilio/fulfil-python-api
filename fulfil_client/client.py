@@ -99,7 +99,7 @@ class Client(object):
         self.session.auth = auth
         if auth is None:
             return
-        if auth.type_ == 'BearerAuth':
+        if isinstance(auth, BearerAuth):
             self.base_url = '%s/api/v2' % self.host
 
     def set_user_agent(self, user_agent):
