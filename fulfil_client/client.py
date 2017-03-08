@@ -30,6 +30,7 @@ def json_response(function):
 
 class SessionAuth(requests.auth.AuthBase):
     "Session Authentication"
+    type_ = 'Session'
 
     def __init__(self, login, user_id, session):
         self.login = login
@@ -43,8 +44,21 @@ class SessionAuth(requests.auth.AuthBase):
         return r
 
 
+class BearerAuth(requests.auth.AuthBase):
+    "Bearer Authentication"
+    type_ = 'BearerAuth'
+
+    def __init__(self, access_token):
+        self.access_token = access_token
+
+    def __call__(self, r):
+        r.headers['Authorization'] = 'Bearer ' + self.access_token
+        return r
+
+
 class APIKeyAuth(requests.auth.AuthBase):
     "API key based Authentication"
+    type_ = 'APIKey'
 
     def __init__(self, api_key):
         self.api_key = api_key
@@ -84,6 +98,10 @@ class Client(object):
 
     def set_auth(self, auth):
         self.session.auth = auth
+        if auth is None:
+            return
+        if auth.type_ == 'BearerAuth':
+            self.base_url = '%s/api/v2' % self.host
 
     def set_user_agent(self, user_agent):
         self.session.headers.update({

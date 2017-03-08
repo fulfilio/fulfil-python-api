@@ -172,6 +172,51 @@ Using Session Auth
     client.set_auth(SessionAuth(user_id, session))
 
 
+Using Bearer Auth
+-----------------
+
+.. code:: python
+
+    from fulfil_client import Client, BearerAuth
+
+    client = Client('subdomain')
+    client.set_auth(BearerAuth(bearer_token))
+
+
+Using OAuth Session
+-------------------
+
+Flask example
+
+.. code:: python
+
+    from fulfil_client.oauth import Session
+    from fulfil_client import Client, BearerAuth
+
+    @app.route('/')
+    def index():
+        callback_url = url_for('authorized')
+        remote = Session(
+            client_id, client_secret,
+            redirect_uri=callback_url,
+            scope=['email']
+        )
+        if 'oauth_token' not in session:
+            authorization_url, state = remote.get_authorization_url()
+            session['oauth_state'] = state
+            return redirect(authorization_url)
+        client = Client('subdomain')
+        client.set_auth(BearerAuth(session['oauth_token']['access_token']))
+        Party = client.model('party.party')
+        return jsonify(Party.find())
+
+    @app.route('/authorized')
+    def authorized():
+        token = remote.get_token(code=request.args.get('code'))
+        session['oauth_token'] = token
+        return jsonify(oauth_token=token)
+
+
 Credits
 ---------
 
