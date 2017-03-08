@@ -195,7 +195,7 @@ class TestMoneyType(object):
 
         list_price = product_model.query.first().list_price
         assert list_price.amount == new_price
-        assert list_price.currency == 'USD' # hard coded in model property
+        assert list_price.currency == 'USD'  # hard coded in model property
 
     def test_none(self, contact_model):
 
@@ -205,11 +205,11 @@ class TestMoneyType(object):
         contact.save()
 
         credit_limit = contact.query.first().credit_limit_amount
-        assert credit_limit == None
+        assert credit_limit is None
 
         contact.credit_limit_amount = Decimal('100000')
         contact.save()
 
         credit_limit = contact.query.first().credit_limit_amount
         assert credit_limit.amount == Decimal('100000')
-        assert credit_limit.currency == 'USD' # hard coded in model property
+        assert credit_limit.currency == 'USD'  # hard coded in model property

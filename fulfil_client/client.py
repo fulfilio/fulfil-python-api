@@ -1,8 +1,10 @@
+import base64
 import json
 import logging
-import requests
 from datetime import datetime
 from functools import partial, wraps
+
+import requests
 from .serialization import JSONDecoder, JSONEncoder
 
 
@@ -25,22 +27,80 @@ def json_response(function):
     return wrapper
 
 
+class SessionAuth(requests.auth.AuthBase):
+    "Session Authentication"
+    type_ = 'Session'
+
+    def __init__(self, login, user_id, session):
+        self.login = login
+        self.user_id = user_id
+        self.session = session
+
+    def __call__(self, r):
+        r.headers['Authorization'] = 'Session ' + base64.b64encode(
+            '%s:%s:%s' % (self.login, self.user_id, self.session)
+        )
+        return r
+
+
+class BearerAuth(requests.auth.AuthBase):
+    "Bearer Authentication"
+    type_ = 'BearerAuth'
+
+    def __init__(self, access_token):
+        self.access_token = access_token
+
+    def __call__(self, r):
+        r.headers['Authorization'] = 'Bearer ' + self.access_token
+        return r
+
+
+class APIKeyAuth(requests.auth.AuthBase):
+    "API key based Authentication"
+    type_ = 'APIKey'
+
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def __call__(self, r):
+        r.headers['x-api-key'] = self.api_key
+        return r
+
+
 class Client(object):
 
-    def __init__(self, subdomain, api_key, user_agent="Python Client"):
+    def __init__(self, subdomain,
+                 api_key=None, context=None, auth=None,
+                 user_agent="Python Client"):
         self.subdomain = subdomain
-        self.api_key = api_key
+
         self.host = 'https://%s.fulfil.io' % self.subdomain
         self.base_url = '%s/api/v1' % self.host
 
         self.session = requests.Session()
+        if api_key is not None:
+            self.set_auth(APIKeyAuth(api_key))
+        else:
+            self.set_auth(auth)
+
         self.session.headers.update({
-            'x-api-key': api_key,
             'User-Agent': user_agent,
         })
 
         self.context = {}
-        self.refresh_context()
+        if context is not None:
+            self.context.update(context)
+        if context is None and self.session.auth:
+            # context is not defined, but auth is there.
+            # try and get a context
+            self.refresh_context()
+
+    def set_auth(self, auth):
+        self.session.auth = auth
+        if auth is None:
+            return
+        if auth.type_ == 'BearerAuth':
+            self.base_url = '%s/api/v2' % self.host
 
     def set_user_agent(self, user_agent):
         self.session.headers.update({
@@ -70,7 +130,7 @@ class Client(object):
     def report(self, name):
         return Report(self, name)
 
-    def login(self, login, password):
+    def login(self, login, password, set_auth=False):
         """
         Attempts a login to the remote server
         and on success returns user id and session
@@ -78,6 +138,8 @@ class Client(object):
 
         Warning: Do not depend on this. This will be deprecated
         with SSO.
+
+        param set_auth: sets the authentication on the client
         """
         rv = self.session.post(
             self.host,
@@ -86,7 +148,12 @@ class Client(object):
                 "params": [login, password]
             }),
         )
-        return loads(rv.content)['result']
+        rv = loads(rv.content)['result']
+        if set_auth:
+            self.set_auth(
+                SessionAuth(login, *rv)
+            )
+        return rv
 
 
 class Record(object):
@@ -150,7 +217,8 @@ class Model(object):
             }
         )
 
-    def search_read_all(self, domain, order, fields, batch_size=500, context=None):
+    def search_read_all(self, domain, order, fields, batch_size=500,
+                        context=None):
         """
         An endless iterator that iterates over records.
 
