@@ -155,6 +155,20 @@ class Client(object):
             )
         return rv
 
+    def is_auth_alive(self):
+        "Return true if the auth is not expired, else false"
+        model = self.model('ir.model')
+        try:
+            model.search([], None, 1, None)
+        except ServerError, err:
+            if err and err.message['code'] == 403:
+                return False
+            raise
+        except Exception:
+            raise
+        else:
+            return True
+
 
 class Record(object):
     def __init__(self, model, id):
