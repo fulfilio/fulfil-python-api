@@ -524,7 +524,11 @@ class Model(object):
     @classmethod
     def get_cache_key(cls, id):
         "Return a cache key for the given id"
-        return '%s:%s' % (cls.__model_name__, id)
+        return '%s:%s:%s' % (
+            cls.fulfil_client.subdomain,
+            cls.__model_name__,
+            id
+        )
 
     @property
     def cache_key(self):
