@@ -41,10 +41,20 @@ JSONDecoder.register(
         dct['hour'], dct['minute'], dct['second'], dct['microsecond']
     )
 )
+
+# Legacy support. Newer versions use bytes, not buffer
 JSONDecoder.register(
     'buffer', lambda dct:
     buffer(base64.decodestring(dct['base64']))
 )
+
+
+def _bytes_decoder(dct):
+    cast = bytearray if bytes == str else bytes
+    return cast(base64.decodestring(dct['base64'].encode('utf-8')))
+
+
+JSONDecoder.register('bytes', _bytes_decoder)
 JSONDecoder.register(
     'Decimal', lambda dct: Decimal(dct['decimal'])
 )
@@ -127,6 +137,12 @@ JSONEncoder.register(
         '__class__': 'buffer',
         'base64': base64.encodestring(o),
     })
+_bytes_encoder = lambda o: {
+    '__class__': 'bytes',
+    'base64': base64.encodestring(o).decode('utf-8'),
+    }
+JSONEncoder.register(bytes, _bytes_encoder)
+JSONEncoder.register(bytearray, _bytes_encoder)
 JSONEncoder.register(
     Decimal,
     lambda o: {
