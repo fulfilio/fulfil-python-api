@@ -22,8 +22,8 @@ def json_response(function):
     def wrapper(*args, **kwargs):
         rv = function(*args, **kwargs)
         if not rv.status_code == requests.codes.ok:
-            raise ServerError(loads(rv.content))
-        return loads(rv.content)
+            raise ServerError(loads(rv.text))
+        return loads(rv.text)
     return wrapper
 
 
@@ -160,7 +160,7 @@ class Client(object):
         model = self.model('ir.model')
         try:
             model.search([], None, 1, None)
-        except ServerError, err:
+        except ServerError as err:
             if err and err.message['code'] == 403:
                 return False
             raise
@@ -245,7 +245,7 @@ class Model(object):
         if context is None:
             context = {}
         count = self.search_count(domain, context=context)
-        for offset in xrange(0, count + batch_size, batch_size):
+        for offset in range(0, count + batch_size, batch_size):
             for record in self.search_read(
                     domain, offset, batch_size, order, fields, context=context):
                 yield record

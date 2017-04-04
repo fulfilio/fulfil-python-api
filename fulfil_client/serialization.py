@@ -42,12 +42,6 @@ JSONDecoder.register(
     )
 )
 
-# Legacy support. Newer versions use bytes, not buffer
-JSONDecoder.register(
-    'buffer', lambda dct:
-    buffer(base64.decodestring(dct['base64']))
-)
-
 
 def _bytes_decoder(dct):
     cast = bytearray if bytes == str else bytes
@@ -69,7 +63,7 @@ JSONDecoder.register(
 
 
 def parse_async_result(dct):
-    from client import AsyncResult
+    from .client import AsyncResult
     return AsyncResult(dct['task_id'], dct['token'], None)
 
 
@@ -130,12 +124,6 @@ JSONEncoder.register(
         'minute': o.minute,
         'second': o.second,
         'microsecond': o.microsecond,
-    })
-JSONEncoder.register(
-    buffer,
-    lambda o: {
-        '__class__': 'buffer',
-        'base64': base64.encodestring(o),
     })
 _bytes_encoder = lambda o: {
     '__class__': 'bytes',

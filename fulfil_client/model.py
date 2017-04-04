@@ -5,6 +5,7 @@ Fulfil.IO Model Helper
 A collection of model layer APIs to write lesser code
 and better
 """
+import six
 import logging
 import functools
 from datetime import datetime, date
@@ -71,7 +72,7 @@ class BooleanType(BaseType):
 class StringType(BaseType):
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', unicode)
+        kwargs.setdefault('cast', six.text_type)
         super(StringType, self).__init__(*args, **kwargs)
 
 
@@ -213,7 +214,7 @@ class NamedDescriptorResolverMetaClass(type):
         # * update all recognised NamedDescriptor member names
         # * find lazy loaded fields
         # * find eager_loaded fields
-        for name, attr in class_dict.iteritems():
+        for name, attr in class_dict.items():
             if isinstance(attr, BaseType):
                 attr.name = name
                 fields.add(name)
@@ -248,7 +249,7 @@ class ModificationTrackingDict(dict):
         """
         Update does not call __setitem__ by default
         """
-        for k, v in dict(*args, **kwargs).iteritems():
+        for k, v in dict(*args, **kwargs).items():
             self[k] = v
 
 
@@ -258,7 +259,7 @@ def return_instances(function):
         query = args[0]
         results = function(*args, **kwargs)
         if query.instance_class:
-            return map(query.instance_class, results)
+            return list(map(query.instance_class, results))
         else:
             return results
     return wrapper
@@ -376,7 +377,7 @@ class Query(object):
         keyword expressions.
         """
         query = self._copy()
-        for field, value in kwargs.iteritems():
+        for field, value in kwargs.items():
             query.domain.append(
                 (field, '=', value)
             )
@@ -497,12 +498,12 @@ class Query(object):
             self.rpc_model.write(ids, {'active': False})
 
 
+@six.add_metaclass(NamedDescriptorResolverMetaClass)
 class Model(object):
     """
     Active record design pattern for RPC models.
     """
 
-    __metaclass__ = NamedDescriptorResolverMetaClass
     __abstract__ = True
 
     fulfil_client = None
@@ -541,7 +542,7 @@ class Model(object):
         load the record and then cache it.
         """
         if isinstance(id, (list, tuple)):
-            return map(cls.from_cache, id)
+            return list(map(cls.from_cache, id))
 
         key = cls.get_cache_key(id)
         cached_value = cls.cache_backend and cls.cache_backend.get(key)
@@ -574,7 +575,7 @@ class Model(object):
         """
         Create multiple active resources at once
         """
-        return map(cls, cls.rpc.read(ids, tuple(cls._eager_fields)))
+        return list(map(cls, cls.rpc.read(ids, tuple(cls._eager_fields))))
 
     @property
     def changes(self):
@@ -668,7 +669,7 @@ class Model(object):
         return '/'.join([
             self.rpc.client.base_url,
             self.__model_name__,
-            unicode(self.id)
+            six.text_type(self.id)
         ])
 
     @property
@@ -678,7 +679,7 @@ class Model(object):
             self.rpc.client.host,
             'client/#/model',
             self.__model_name__,
-            unicode(self.id)
+            six.text_type(self.id)
         ])
 
 
