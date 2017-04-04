@@ -20,6 +20,7 @@ requirements = [
     'requests_oauthlib',
     'money',
     'babel',
+    'six',
 ]
 
 test_requirements = [

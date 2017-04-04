@@ -189,7 +189,7 @@ class TestMoneyType(object):
     def test_setting_values(self, product_model):
         product = product_model.query.first()
 
-        new_price = Decimal(random.choice(xrange(1, 1000)))
+        new_price = Decimal(random.choice(list(range(1, 1000))))
         product.list_price = new_price
         product.save()
 

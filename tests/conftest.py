@@ -10,7 +10,7 @@ from fulfil_client.model import model_base
 
 @pytest.fixture
 def client():
-    return Client('fulfil_demo', os.environ['FULFIL_API_KEY'])
+    return Client('demo', os.environ['FULFIL_API_KEY'])
 
 
 @pytest.fixture
