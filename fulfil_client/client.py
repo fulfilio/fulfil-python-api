@@ -13,7 +13,17 @@ dumps = partial(json.dumps, cls=JSONEncoder)
 loads = partial(json.loads, object_hook=JSONDecoder())
 
 
-class ServerError(Exception):
+class Error(Exception):
+    def __init__(self, message, code):
+        super(Exception, self).__init__(message)
+        self.code = code
+
+
+class ServerError(Error):
+    pass
+
+
+class ClientError(Error):
     pass
 
 
@@ -21,8 +31,10 @@ def json_response(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         rv = function(*args, **kwargs)
-        if not rv.status_code == requests.codes.ok:
-            raise ServerError(loads(rv.text))
+        if rv.status_code != requests.codes.ok:
+            if 400 <= rv.status_code and rv.status_code < 500:
+                raise ClientError(loads(rv.text), rv.status_code)
+            raise ServerError(loads(rv.text), rv.status_code)
         return loads(rv.text)
     return wrapper
 
