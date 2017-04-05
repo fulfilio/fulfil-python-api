@@ -7,4 +7,4 @@ __version__ = '0.7.4'
 # flake8: noqa
 
 from .client import Client, Model, ServerError, SessionAuth, APIKeyAuth, \
-    BearerAuth
+    BearerAuth, ClientError
