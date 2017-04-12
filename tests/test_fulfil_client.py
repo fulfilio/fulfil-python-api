@@ -8,7 +8,7 @@ test_fulfil_client
 Tests for `fulfil_client` module.
 """
 import pytest
-from fulfil_client import ServerError
+from fulfil_client import Client, ClientError, ServerError
 
 
 def test_find(client):
@@ -40,3 +40,8 @@ def test_raises_server_error(client):
     Model = client.model('ir.model')
     with pytest.raises(ServerError):
         Model.search(1)
+
+
+def test_raises_client_error():
+    with pytest.raises(ClientError):
+        Client('demo', 'wrong-api-key')
