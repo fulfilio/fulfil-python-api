@@ -172,7 +172,7 @@ class Client(object):
         model = self.model('ir.model')
         try:
             model.search([], None, 1, None)
-        except ServerError as err:
+        except ClientError as err:
             if err and err.message['code'] == 403:
                 return False
             raise
