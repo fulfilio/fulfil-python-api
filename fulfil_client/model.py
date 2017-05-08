@@ -8,6 +8,7 @@ and better
 import six
 import logging
 import functools
+import warnings
 from datetime import datetime, date
 from copy import copy
 from decimal import Decimal
@@ -536,13 +537,44 @@ class Model(object):
         return self.get_cache_key(self.id)
 
     @classmethod
+    def from_cache_multi(cls, ids):
+        """
+        Check if a record is in cache. If it is load from there, if not
+        load the record and then cache it, but in bulk.
+        """
+        results = []
+        misses = []
+        if not cls.cache_backend:
+            misses = ids
+        else:
+            for id in ids:
+                key = cls.get_cache_key(id)
+                cached_value = cls.cache_backend.get(key)
+                if cached_value:
+                    results.append(cls(id=id, values=loads(cached_value)))
+                else:
+                    misses.append(id)
+
+        if misses:
+            # Get the records in bulk for misses
+            rows = cls.rpc.read(misses, tuple(cls._fields))
+            for row in rows:
+                record = cls(id=row['id'], values=row)
+                record.store_in_cache()
+                results.append(record)
+
+        return sorted(results, key=lambda r: ids.index(r.id))
+
+    @classmethod
     def from_cache(cls, id):
         """
         Check if a record is in cache. If it is load from there, if not
         load the record and then cache it.
         """
         if isinstance(id, (list, tuple)):
-            return list(map(cls.from_cache, id))
+            message = "For list and ids use from_cache_multi"
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return cls.from_cache_multi(id)
 
         key = cls.get_cache_key(id)
         cached_value = cls.cache_backend and cls.cache_backend.get(key)

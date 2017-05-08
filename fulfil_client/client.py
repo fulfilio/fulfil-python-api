@@ -34,7 +34,7 @@ def json_response(function):
         if rv.status_code != requests.codes.ok:
             if 400 <= rv.status_code and rv.status_code < 500:
                 raise ClientError(loads(rv.text), rv.status_code)
-            raise ServerError(loads(rv.text), rv.status_code)
+            raise ServerError(rv.text, rv.status_code)
         return loads(rv.text)
     return wrapper
 
