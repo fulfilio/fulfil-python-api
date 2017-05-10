@@ -193,16 +193,16 @@ Flask example
     from fulfil_client.oauth import Session
     from fulfil_client import Client, BearerAuth
 
+    Session.setup(CLIENT_ID, CLIENT_SECRET)
+    fulfil_session = Session('localhost')  # Provide subdomain
+
     @app.route('/')
     def index():
         callback_url = url_for('authorized')
-        remote = Session(
-            client_id, client_secret,
-            redirect_uri=callback_url,
-            scope=['email']
-        )
         if 'oauth_token' not in session:
-            authorization_url, state = remote.get_authorization_url()
+            authorization_url, state = fulfil_session.create_authorization_url(
+                redirect_uri=callback_url, scope=['user_session']
+            )
             session['oauth_state'] = state
             return redirect(authorization_url)
         client = Client('subdomain')
@@ -212,7 +212,9 @@ Flask example
 
     @app.route('/authorized')
     def authorized():
-        token = remote.get_token(code=request.args.get('code'))
+        """Callback route to fetch access token from grant code
+        """
+        token = fulfil_session.get_token(code=request.args.get('code'))
         session['oauth_token'] = token
         return jsonify(oauth_token=token)
 
