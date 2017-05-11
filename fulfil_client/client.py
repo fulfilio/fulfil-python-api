@@ -86,7 +86,11 @@ class Client(object):
                  user_agent="Python Client"):
         self.subdomain = subdomain
 
-        self.host = 'https://%s.fulfil.io' % self.subdomain
+        if self.subdomain == 'localhost':
+            self.host = 'http://localhost:8000'
+        else:
+            self.host = 'https://%s.fulfil.io' % self.subdomain
+
         self.base_url = '%s/api/v1' % self.host
 
         self.session = requests.Session()
