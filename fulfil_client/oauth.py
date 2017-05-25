@@ -28,10 +28,11 @@ class Session(OAuth2Session):
         else:
             return 'https://%s.fulfil.io/' % self.fulfil_subdomain
 
-    def create_authorization_url(self, redirect_uri, scope):
+    def create_authorization_url(self, redirect_uri, scope, **kwargs):
         self.redirect_uri = redirect_uri
         self.scope = scope
-        return self.authorization_url(self.base_url + 'oauth/authorize')
+        return self.authorization_url(
+            self.base_url + 'oauth/authorize', **kwargs)
 
     def get_token(self, code):
         token_url = self.base_url + 'oauth/token'
