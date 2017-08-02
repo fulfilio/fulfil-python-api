@@ -537,10 +537,19 @@ class Model(object):
         return self.get_cache_key(self.id)
 
     @classmethod
-    def from_cache_multi(cls, ids):
+    def from_cache_multi(cls, ids, ignore_misses=False):
         """
-        Check if a record is in cache. If it is load from there, if not
+        Check if a record is in cache. If it is, load from there, if not
         load the record and then cache it, but in bulk.
+
+        For performance, you can opt to ignore fetching records that are
+        not already on the cache. While this can give you a performance
+        boost, this may result in some or more records missing. Use with
+        care, you've been warned!
+
+        :param ignore_misses: If True, then the returned set will not
+                              include records that are not already in
+                              cache.
         """
         results = []
         misses = []
@@ -556,6 +565,11 @@ class Model(object):
                     misses.append(id)
 
         if misses:
+            cache_logger.warn(
+                "MISS::MULTI::%s::%s" % (cls.__model_name__, misses)
+            )
+
+        if misses and not ignore_misses:
             # Get the records in bulk for misses
             rows = cls.rpc.read(misses, tuple(cls._fields))
             for row in rows:
