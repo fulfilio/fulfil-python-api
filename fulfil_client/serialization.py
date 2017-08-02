@@ -41,6 +41,10 @@ JSONDecoder.register(
         dct['hour'], dct['minute'], dct['second'], dct['microsecond']
     )
 )
+JSONDecoder.register(
+    'timedelta',
+    lambda dct: datetime.timedelta(seconds=dct['seconds'])
+)
 
 
 def _bytes_decoder(dct):
@@ -124,6 +128,12 @@ JSONEncoder.register(
         'minute': o.minute,
         'second': o.second,
         'microsecond': o.microsecond,
+    })
+JSONEncoder.register(
+    datetime.timedelta,
+    lambda o: {
+        '__class__': 'timedelta',
+        'seconds': o.total_seconds(),
     })
 _bytes_encoder = lambda o: {
     '__class__': 'bytes',
