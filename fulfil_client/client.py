@@ -248,7 +248,7 @@ class Model(object):
         )
 
     def search_read_all(self, domain, order, fields, batch_size=500,
-                        context=None):
+                        context=None, offset=0, limit=None):
         """
         An endless iterator that iterates over records.
 
@@ -260,10 +260,21 @@ class Model(object):
         """
         if context is None:
             context = {}
-        count = self.search_count(domain, context=context)
-        for offset in range(0, count + batch_size, batch_size):
+
+        if limit is None:
+            # When no limit is specified, all the records
+            # should be fetched.
+            record_count = self.search_count(domain, context=context)
+            end = record_count + offset
+        else:
+            end = limit + offset
+
+        for page_offset in range(offset, end, batch_size):
+            if page_offset + batch_size > end:
+                batch_size = end - page_offset
             for record in self.search_read(
-                    domain, offset, batch_size, order, fields, context=context):
+                    domain, page_offset, batch_size,
+                    order, fields, context=context):
                 yield record
 
     @json_response
