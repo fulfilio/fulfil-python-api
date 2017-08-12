@@ -258,11 +258,9 @@ def return_instances(function):
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         query = args[0]
-        results = function(*args, **kwargs)
-        if query.instance_class:
-            return list(map(query.instance_class, results))
-        else:
-            return results
+        map_fn = query.instance_class
+        for record in function(*args, **kwargs):
+            yield map_fn(record) if map_fn else record
     return wrapper
 
 
@@ -342,11 +340,22 @@ class Query(object):
 
     @return_instances
     def all(self):
-        "Return the results represented by this Query as a list."
-        return self.rpc_model.search_read(
-            self.domain, self._offset, self._limit, self._order_by,
+        """
+        Return the results represented by this Query as a list.
+
+        .. versionchanged:: 0.10.0
+
+            Returns an iterator that lazily loads
+            records instead of fetching thousands
+            of records at once.
+        """
+        return self.rpc_model.search_read_all(
+            self.domain,
+            self._order_by,
             self.fields,
-            context=self.context
+            context=self.context,
+            offset=self._offset or 0,
+            limit=self._limit,
         )
 
     def count(self):
