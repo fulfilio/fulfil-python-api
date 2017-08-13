@@ -1,3 +1,6 @@
+V 0.10.0
+========
+
 * search_read_all now accepts limit and offset
 * model.all() now returns an iterator instead of list
 * model.all() fetched data lazily instead of fetching all records at once
