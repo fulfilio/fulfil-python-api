@@ -258,11 +258,9 @@ def return_instances(function):
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         query = args[0]
-        results = function(*args, **kwargs)
-        if query.instance_class:
-            return list(map(query.instance_class, results))
-        else:
-            return results
+        map_fn = query.instance_class
+        for record in function(*args, **kwargs):
+            yield map_fn(record) if map_fn else record
     return wrapper
 
 
@@ -342,11 +340,22 @@ class Query(object):
 
     @return_instances
     def all(self):
-        "Return the results represented by this Query as a list."
-        return self.rpc_model.search_read(
-            self.domain, self._offset, self._limit, self._order_by,
+        """
+        Return the results represented by this Query as a list.
+
+        .. versionchanged:: 0.10.0
+
+            Returns an iterator that lazily loads
+            records instead of fetching thousands
+            of records at once.
+        """
+        return self.rpc_model.search_read_all(
+            self.domain,
+            self._order_by,
             self.fields,
-            context=self.context
+            context=self.context,
+            offset=self._offset or 0,
+            limit=self._limit,
         )
 
     def count(self):
@@ -537,10 +546,19 @@ class Model(object):
         return self.get_cache_key(self.id)
 
     @classmethod
-    def from_cache_multi(cls, ids):
+    def from_cache_multi(cls, ids, ignore_misses=False):
         """
-        Check if a record is in cache. If it is load from there, if not
+        Check if a record is in cache. If it is, load from there, if not
         load the record and then cache it, but in bulk.
+
+        For performance, you can opt to ignore fetching records that are
+        not already on the cache. While this can give you a performance
+        boost, this may result in some or more records missing. Use with
+        care, you've been warned!
+
+        :param ignore_misses: If True, then the returned set will not
+                              include records that are not already in
+                              cache.
         """
         results = []
         misses = []
@@ -556,6 +574,11 @@ class Model(object):
                     misses.append(id)
 
         if misses:
+            cache_logger.warn(
+                "MISS::MULTI::%s::%s" % (cls.__model_name__, misses)
+            )
+
+        if misses and not ignore_misses:
             # Get the records in bulk for misses
             rows = cls.rpc.read(misses, tuple(cls._fields))
             for row in rows:
