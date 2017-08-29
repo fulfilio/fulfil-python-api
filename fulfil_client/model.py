@@ -13,6 +13,7 @@ from datetime import datetime, date
 from copy import copy
 from decimal import Decimal
 from money import Money
+from itertools import izip
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
@@ -565,9 +566,8 @@ class Model(object):
         if not cls.cache_backend:
             misses = ids
         else:
-            for id in ids:
-                key = cls.get_cache_key(id)
-                cached_value = cls.cache_backend.get(key)
+            cached_values = cls.cache_backend.mget(map(cls.get_cache_key, ids))
+            for id, cached_value in izip(ids, cached_values):
                 if cached_value:
                     results.append(cls(id=id, values=loads(cached_value)))
                 else:
