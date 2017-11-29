@@ -160,6 +160,21 @@ Sale
     }])
 
 
+Fetching an interactive report (sales by month)
+-----------------------------------------------
+
+The report data (including rendering) information can be fetched
+over the API.
+
+Below is the example code to fetch sales by month report.
+
+.. code:: python
+
+    report = client.interactive_report('sales_by_month.ireport')
+    data = report.execute(start_date=date(2017,1,1), end_date=date(2017, 12,1))
+
+
+
 Using Session Auth
 ------------------
 
