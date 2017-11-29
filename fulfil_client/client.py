@@ -146,6 +146,9 @@ class Client(object):
     def report(self, name):
         return Report(self, name)
 
+    def interactive_report(self, name):
+        return InteractiveReport(self, name)
+
     def login(self, login, password, set_auth=False):
         """
         Attempts a login to the remote server
@@ -332,6 +335,31 @@ class Report(object):
                 'objects': records or [],
                 'data': data or {},
             },
+            params={
+                'context': dumps(context),
+            }
+        )
+
+
+class InteractiveReport(object):
+
+    def __init__(self, client, model_name):
+        self.client = client
+        self.model_name = model_name
+
+    @property
+    def path(self):
+        return '%s/model/%s/execute' % (
+            self.client.base_url, self.model_name
+        )
+
+    @json_response
+    def execute(self, **kwargs):
+        context = self.client.context.copy()
+        context.update(kwargs.pop('context', {}))
+        return self.client.session.put(
+            self.path,
+            dumps([kwargs]),
             params={
                 'context': dumps(context),
             }
