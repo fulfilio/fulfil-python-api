@@ -88,6 +88,14 @@ def res_user_model(Model):
 
 
 @pytest.fixture
+def res_user_model_with_cache(ModelWithCache):
+    class ResUserModel(ModelWithCache):
+        __model_name__ = 'res.user'
+        name = StringType()
+    return ResUserModel
+
+
+@pytest.fixture
 def sale_order_model(Model):
     class SaleOrderModel(Model):
         __model_name__ = 'sale.sale'
@@ -153,6 +161,20 @@ class TestModel(object):
         user = res_user_model.query.first()
         user_again = res_user_model.query.get(user.id)
         assert user == user_again
+
+    def test_multi_cache_wo_redis(self, res_user_model):
+        ids = res_user_model.rpc.search([])
+        records = res_user_model.from_cache_multi(ids)
+        assert len(records) == len(ids)
+
+    def test_multi_cache_with_redis(self, res_user_model_with_cache):
+        ids = res_user_model_with_cache.rpc.search([])
+        records = res_user_model_with_cache.from_cache_multi(ids)
+        assert len(records) == len(ids)
+
+    def test_multi_cache_empty_list(self, res_user_model_with_cache):
+        "Should not raise an error"
+        records = res_user_model_with_cache.from_cache_multi([])
 
     def test_inequality_of_saved_records(self, res_user_model, module_model):
         assert res_user_model.query.first() != module_model.query.first()
