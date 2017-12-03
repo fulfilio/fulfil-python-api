@@ -561,6 +561,8 @@ class Model(object):
                               include records that are not already in
                               cache.
         """
+        if not ids:
+            return []
         results = []
         misses = []
         if not cls.cache_backend:

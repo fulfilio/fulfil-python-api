@@ -23,9 +23,6 @@ requirements = [
     'six',
 ]
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
 
 setup(
     name='fulfil_client',
@@ -55,5 +52,5 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    tests_require=['pytest', 'redis'],
 )

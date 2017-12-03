@@ -3,6 +3,7 @@
 import os
 
 import pytest
+import redis
 
 from fulfil_client import Client
 from fulfil_client.model import model_base
@@ -16,3 +17,11 @@ def client():
 @pytest.fixture
 def Model(client):
     return model_base(client)
+
+
+@pytest.fixture
+def ModelWithCache(client):
+    return model_base(
+        client,
+        cache_backend=redis.StrictRedis(host='localhost', port=6379, db=0)
+    )
