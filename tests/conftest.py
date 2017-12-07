@@ -3,7 +3,7 @@
 import os
 
 import pytest
-import redis
+from mockredis import mock_strict_redis_client
 
 from fulfil_client import Client
 from fulfil_client.model import model_base
@@ -23,5 +23,5 @@ def Model(client):
 def ModelWithCache(client):
     return model_base(
         client,
-        cache_backend=redis.StrictRedis(host='localhost', port=6379, db=0)
+        cache_backend=mock_strict_redis_client()
     )
