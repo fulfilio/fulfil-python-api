@@ -6,6 +6,7 @@ from functools import partial, wraps
 
 import requests
 from .serialization import JSONDecoder, JSONEncoder
+from .signals import response_received
 
 
 request_logger = logging.getLogger('fulfil_client.request')
@@ -226,13 +227,15 @@ class Model(object):
                     self.model_name, name, args, kwargs
                 )
             )
-            return self.client.session.put(
+            rv = self.client.session.put(
                 self.path + '/%s' % name,
                 dumps(args),
                 params={
                     'context': dumps(context),
                 }
             )
+            response_received.send(rv)
+            return rv
         return proxy_method
 
     @property
@@ -243,12 +246,14 @@ class Model(object):
     def get(self, id, context=None):
         ctx = self.client.context.copy()
         ctx.update(context or {})
-        return self.client.session.get(
+        rv = self.client.session.get(
             self.path + '/%d' % id,
             params={
                 'context': dumps(ctx),
             }
         )
+        response_received.send(rv)
+        return rv
 
     def search_read_all(self, domain, order, fields, batch_size=500,
                         context=None, offset=0, limit=None):
@@ -303,7 +308,7 @@ class Model(object):
         """
         if filter is None:
             filter = []
-        return self.client.session.get(
+        rv = self.client.session.get(
             self.path,
             params={
                 'filter': dumps(filter or []),
@@ -313,6 +318,8 @@ class Model(object):
                 'context': dumps(context or self.client.context),
             }
         )
+        response_received.send(rv)
+        return rv
 
 
 class Report(object):
@@ -329,7 +336,7 @@ class Report(object):
     def execute(self, records=None, data=None, **kwargs):
         context = self.client.context.copy()
         context.update(kwargs.pop('context', {}))
-        return self.client.session.put(
+        rv = self.client.session.put(
             self.path,
             json={
                 'objects': records or [],
@@ -339,6 +346,8 @@ class Report(object):
                 'context': dumps(context),
             }
         )
+        response_received.send(rv)
+        return rv
 
 
 class InteractiveReport(object):
@@ -357,13 +366,15 @@ class InteractiveReport(object):
     def execute(self, **kwargs):
         context = self.client.context.copy()
         context.update(kwargs.pop('context', {}))
-        return self.client.session.put(
+        rv = self.client.session.put(
             self.path,
             dumps([kwargs]),
             params={
                 'context': dumps(context),
             }
         )
+        response_received.send(rv)
+        return rv
 
 
 class AsyncResult(object):
@@ -403,7 +414,7 @@ class AsyncResult(object):
                 "Unbound AsyncResults cannot refresh status.\n"
                 "Hint: Bind `result.bind(client)` and try again."
             )
-        return self.client.session.post(
+        rv = self.client.session.post(
             self.path,
             json={
                 'tasks': [
@@ -411,6 +422,8 @@ class AsyncResult(object):
                 ]
             },
         )
+        response_received.send(rv)
+        return rv
 
     def refresh_if_needed(self):
         """
