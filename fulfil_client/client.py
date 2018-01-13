@@ -314,6 +314,18 @@ class Model(object):
             }
         )
 
+    def attach(self, id, filename, url):
+        """Add an attachmemt to record from url
+
+        :param id: ID of record
+        :param filename: File name of attachment
+        :param url: Public url to download file from.
+        """
+        Attachment = self.client.model('ir.attachment')
+        return Attachment.add_attachment_from_url(
+            filename, url, '%s,%s' % (self.model_name, id)
+        )
+
 
 class Report(object):
 
