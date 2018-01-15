@@ -1,6 +1,8 @@
 import base64
 import json
 import logging
+from collections import defaultdict
+from contextlib import contextmanager
 from datetime import datetime
 from functools import partial, wraps
 
@@ -146,6 +148,9 @@ class Client(object):
     def report(self, name):
         return Report(self, name)
 
+    def wizard(self, name):
+        return Wizard(self, name)
+
     def interactive_report(self, name):
         return InteractiveReport(self, name)
 
@@ -187,6 +192,118 @@ class Client(object):
             raise
         else:
             return True
+
+
+class WizardSession(object):
+    """An object to represent a specific session
+    """
+    def __init__(self, wizard, context):
+        self.wizard = wizard
+
+        if context is None:
+            context = {}
+        self.context = context
+        self.session_id, self.start_state, self.end_state = self.wizard.create(
+            context=context
+        )
+
+        # Local state variables
+        self.data = defaultdict(dict)
+        self.state = None
+
+        # Start the session
+        self.execute(self.start_state)
+
+    def execute(self, state, context=None):
+        ctx = self.context.copy()
+        if context is not None:
+            ctx.update(context)
+
+        self.state = state
+        while self.state != self.end_state:
+            result = self.parse_result(
+                self.wizard.execute(
+                    self.session_id,
+                    self.data,
+                    self.state,
+                    ctx
+                )
+            )
+            if 'view' in result:
+                return result
+        return result
+
+    def parse_result(self, result):
+        if 'view' in result:
+            view = result['view']
+            self.data[view['state']].update(
+                view['defaults']
+            )
+        else:
+            self.state = self.end_state
+        return result
+
+    def delete(self):
+        """
+        Delete the session
+        """
+        self.wizard.delete(self.session_id)
+
+
+class Wizard(object):
+
+    def __init__(self, client, wizard_name, **kwargs):
+        self.client = client
+        self.wizard_name = wizard_name
+        self.context = kwargs.get('context', {})
+
+    @contextmanager
+    def session(self, **context):
+        _session = WizardSession(self, context)
+        yield _session
+        _session.delete()
+
+    @property
+    def path(self):
+        return '%s/wizard/%s' % (self.client.base_url, self.wizard_name)
+
+    @json_response
+    def execute(self, session_id, data, state, context=None):
+        ctx = self.client.context.copy()
+        ctx.update(context or {})
+        request_logger.debug(
+            "Wizard::%s.execute::%s" % (self.wizard_name, state)
+        )
+        rv = self.client.session.put(
+            self.path + '/execute',
+            dumps([session_id, data, state]),
+            params={'context': dumps(ctx)}
+        )
+        # Call response signal
+        return rv
+
+    @json_response
+    def create(self, context=None):
+        ctx = self.client.context.copy()
+        ctx.update(context or {})
+        request_logger.debug("Wizard::%s.create" % (self.wizard_name,))
+        rv = self.client.session.put(
+            self.path + '/create',
+            dumps([]),
+            params={'context': dumps(ctx)}
+        )
+        # Call response signal
+        return rv
+
+    @json_response
+    def delete(self, session_id):
+        request_logger.debug("Wizard::%s.delete" % (self.wizard_name,))
+        rv = self.client.session.put(
+            self.path + '/delete',
+            dumps([session_id])
+        )
+        # Call response signal
+        return rv
 
 
 class Record(object):

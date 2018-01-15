@@ -112,3 +112,19 @@ def test_raises_server_error(client):
 def test_raises_client_error():
     with pytest.raises(ClientError):
         Client('demo', 'wrong-api-key')
+
+
+def test_wizard_implementation(oauth_client):
+    SaleReturnWizard = oauth_client.wizard('sale.return_sale')
+    Sale = oauth_client.model('sale.sale')
+
+    existing_orders = Sale.search([], None, 1, None)
+    if not existing_orders:
+        pytest.fail("No existing order to reverse")
+
+    with SaleReturnWizard.session(active_ids=existing_orders) as wizard:
+        result = wizard.execute('return_')
+        assert 'actions' in result
+        action, data = result['actions'][0]
+        assert 'res_id' in data
+        assert len(data['res_id']) == 1
