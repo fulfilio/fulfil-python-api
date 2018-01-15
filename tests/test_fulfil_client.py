@@ -20,10 +20,10 @@ def test_find(client):
 
 
 def test_search_read_all(client):
-    IRModel = client.model('ir.model')
-    total_records = IRModel.search_count([])
+    IRView = client.model('ir.ui.view')
+    total_records = IRView.search_count([])
     ir_models = list(
-        IRModel.search_read_all([], None, ['rec_name'], batch_size=50)
+        IRView.search_read_all([], None, ['rec_name'], batch_size=50)
     )
 
     # the default batch size is 500 and the total records
@@ -40,7 +40,7 @@ def test_search_read_all(client):
 
     # Offset and then fetch
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], offset=10
         )
     )
@@ -49,7 +49,7 @@ def test_search_read_all(client):
 
     # Smaller batch size and offset
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], batch_size=5, offset=10
         )
     )
@@ -58,7 +58,7 @@ def test_search_read_all(client):
 
     # Smaller batch size and limit
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], batch_size=5, limit=10
         )
     )
@@ -67,7 +67,7 @@ def test_search_read_all(client):
 
     #  default batch size and limit
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], limit=10
         )
     )
@@ -76,7 +76,7 @@ def test_search_read_all(client):
 
     # small batch size and limit and offset
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'],
             batch_size=5, limit=10, offset=5
         )
@@ -86,7 +86,7 @@ def test_search_read_all(client):
 
     # default batch size and limit and offset
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'],
             limit=10, offset=5
         )
