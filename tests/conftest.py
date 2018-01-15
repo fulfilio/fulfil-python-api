@@ -5,13 +5,20 @@ import os
 import pytest
 import redis
 
-from fulfil_client import Client
+from fulfil_client import Client, BearerAuth
 from fulfil_client.model import model_base
 
 
 @pytest.fixture
 def client():
     return Client('demo', os.environ['FULFIL_API_KEY'])
+
+
+@pytest.fixture
+def oauth_client():
+    return Client(
+        'demo', auth=BearerAuth(os.environ['FULFIL_OAUTH_TOKEN'])
+    )
 
 
 @pytest.fixture
