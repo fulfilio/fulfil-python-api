@@ -23,13 +23,10 @@ requirements = [
     'six',
 ]
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
 
 setup(
     name='fulfil_client',
-    version='0.11.0',
+    version='0.12.0',
     description="Fulfil REST API Client in Python",
     long_description=readme + '\n\n' + history,
     author="Fulfil.IO Inc.",
@@ -55,5 +52,5 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    tests_require=['pytest', 'redis'],
 )

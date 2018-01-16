@@ -20,10 +20,10 @@ def test_find(client):
 
 
 def test_search_read_all(client):
-    IRModel = client.model('ir.model')
-    total_records = IRModel.search_count([])
+    IRView = client.model('ir.ui.view')
+    total_records = IRView.search_count([])
     ir_models = list(
-        IRModel.search_read_all([], None, ['rec_name'], batch_size=50)
+        IRView.search_read_all([], None, ['rec_name'], batch_size=50)
     )
 
     # the default batch size is 500 and the total records
@@ -40,7 +40,7 @@ def test_search_read_all(client):
 
     # Offset and then fetch
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], offset=10
         )
     )
@@ -49,7 +49,7 @@ def test_search_read_all(client):
 
     # Smaller batch size and offset
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], batch_size=5, offset=10
         )
     )
@@ -58,7 +58,7 @@ def test_search_read_all(client):
 
     # Smaller batch size and limit
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], batch_size=5, limit=10
         )
     )
@@ -67,7 +67,7 @@ def test_search_read_all(client):
 
     #  default batch size and limit
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'], limit=10
         )
     )
@@ -76,7 +76,7 @@ def test_search_read_all(client):
 
     # small batch size and limit and offset
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'],
             batch_size=5, limit=10, offset=5
         )
@@ -86,7 +86,7 @@ def test_search_read_all(client):
 
     # default batch size and limit and offset
     ir_models = list(
-        IRModel.search_read_all(
+        IRView.search_read_all(
             [], None, ['rec_name'],
             limit=10, offset=5
         )
@@ -112,3 +112,19 @@ def test_raises_server_error(client):
 def test_raises_client_error():
     with pytest.raises(ClientError):
         Client('demo', 'wrong-api-key')
+
+
+def test_wizard_implementation(oauth_client):
+    SaleReturnWizard = oauth_client.wizard('sale.return_sale')
+    Sale = oauth_client.model('sale.sale')
+
+    existing_orders = Sale.search([], None, 1, None)
+    if not existing_orders:
+        pytest.fail("No existing order to reverse")
+
+    with SaleReturnWizard.session(active_ids=existing_orders) as wizard:
+        result = wizard.execute('return_')
+        assert 'actions' in result
+        action, data = result['actions'][0]
+        assert 'res_id' in data
+        assert len(data['res_id']) == 1
