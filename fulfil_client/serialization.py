@@ -7,6 +7,7 @@ try:
 except ImportError:
     import json
 import base64
+import pytz
 
 
 class JSONDecoder(object):
@@ -98,19 +99,24 @@ class JSONEncoder(json.JSONEncoder):
         return marshaller(obj)
 
 
-JSONEncoder.register(
-    datetime.datetime,
-    lambda o: {
+def _encode_datetime(value):
+    if value.tzinfo:
+        # Fulfil expects datetime in utc only
+        value = value.astimezone(pytz.utc)
+    return {
         '__class__': 'datetime',
-        'year': o.year,
-        'month': o.month,
-        'day': o.day,
-        'hour': o.hour,
-        'minute': o.minute,
-        'second': o.second,
-        'microsecond': o.microsecond,
-        'iso_string': o.isoformat(),
-    })
+        'year': value.year,
+        'month': value.month,
+        'day': value.day,
+        'hour': value.hour,
+        'minute': value.minute,
+        'second': value.second,
+        'microsecond': value.microsecond,
+        'iso_string': value.isoformat(),
+    }
+
+
+JSONEncoder.register(datetime.datetime, _encode_datetime)
 JSONEncoder.register(
     datetime.date,
     lambda o: {

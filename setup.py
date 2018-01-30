@@ -21,6 +21,7 @@ requirements = [
     'money',
     'babel',
     'six',
+    'pytz',
 ]
 
 
