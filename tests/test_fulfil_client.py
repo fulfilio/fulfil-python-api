@@ -122,7 +122,9 @@ def test_wizard_implementation(oauth_client):
     if not existing_orders:
         pytest.fail("No existing order to reverse")
 
-    with SaleReturnWizard.session(active_ids=existing_orders) as wizard:
+    existing_order, = existing_orders
+    with SaleReturnWizard.session(
+            active_ids=[existing_order], active_id=existing_order) as wizard:
         result = wizard.execute('return_')
         assert 'actions' in result
         action, data = result['actions'][0]

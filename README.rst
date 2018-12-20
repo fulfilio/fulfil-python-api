@@ -24,6 +24,14 @@ Features
 
 * Ability to call models
 
+Installation
+------------
+
+.. code:: sh
+    
+    pip install fulfil_client
+
+
 Quickstart
 ----------
 

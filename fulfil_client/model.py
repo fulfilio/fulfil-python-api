@@ -13,10 +13,13 @@ from datetime import datetime, date
 from copy import copy
 from decimal import Decimal
 from money import Money
-from future_builtins import zip
 
 import fulfil_client
 from fulfil_client.client import loads, dumps
+
+if six.PY2:
+    from future_builtins import zip
+
 
 cache_logger = logging.getLogger('fulfil_client.cache')
 
