@@ -23,7 +23,7 @@ class Error(Exception):
         self.code = code
 
     def __str__(self):
-        return self.message
+        return str(self.message)
 
 
 class ServerError(Error):
