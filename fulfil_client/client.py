@@ -19,6 +19,7 @@ loads = partial(json.loads, object_hook=JSONDecoder())
 class Error(Exception):
     def __init__(self, message, code):
         super(Exception, self).__init__(message)
+        self.message = message
         self.code = code
 
 
