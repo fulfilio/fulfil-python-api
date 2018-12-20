@@ -22,6 +22,9 @@ class Error(Exception):
         self.message = message
         self.code = code
 
+    def __str__(self):
+        return self.message
+
 
 class ServerError(Error):
     pass
