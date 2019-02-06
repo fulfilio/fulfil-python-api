@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 import fulfil_client
-from fulfil_client.contrib.mock import MockFulfil
+from fulfil_client.contrib.mocking import MockFulfil
 
 
 def api_calling_method():
