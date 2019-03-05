@@ -34,9 +34,11 @@ setup(
     url='https://github.com/fulfilio/fulfil-python-api',
     packages=[
         'fulfil_client',
+        'fulfil_client.contrib',
     ],
     package_dir={
-        'fulfil_client': 'fulfil_client'
+        'fulfil_client': 'fulfil_client',
+        'fulfil_client.contrib': 'fulfil_client/contrib'
     },
     include_package_data=True,
     install_requires=requirements,
