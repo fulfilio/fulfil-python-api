@@ -26,7 +26,7 @@ requirements = [
 
 setup(
     name='fulfil_client',
-    version='0.13.0',
+    version='0.13.1',
     description="Fulfil REST API Client in Python",
     long_description=readme + '\n\n' + history,
     author="Fulfil.IO Inc.",
@@ -34,9 +34,11 @@ setup(
     url='https://github.com/fulfilio/fulfil-python-api',
     packages=[
         'fulfil_client',
+        'fulfil_client.contrib',
     ],
     package_dir={
-        'fulfil_client': 'fulfil_client'
+        'fulfil_client': 'fulfil_client',
+        'fulfil_client.contrib': 'fulfil_client/contrib'
     },
     include_package_data=True,
     install_requires=requirements,
