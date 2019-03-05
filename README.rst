@@ -28,7 +28,7 @@ Installation
 ------------
 
 .. code:: sh
-    
+
     pip install fulfil_client
 
 
@@ -240,6 +240,58 @@ Flask example
         token = fulfil_session.get_token(code=request.args.get('code'))
         session['oauth_token'] = token
         return jsonify(oauth_token=token)
+
+
+Testing
+-------
+
+The libary also provides a mocking function powered by the mock library
+of python.
+
+For example, if you want to test the function below
+
+.. code-block:: python
+
+    def api_calling_method():
+        client = fulfil_client.Client('apple', 'apples-api-key')
+        Product = client.model('product.product')
+        products = Product.search_read_all([], None, ['id'])
+        Product.write(
+            [p['id'] for p in products],
+            {'active': False}
+        )
+        return client
+
+
+Then the test case can mock the API call
+
+.. code-block:: python
+
+    def test_mock_1():
+        with MockFulfil('fulfil_client.Client') as mocked_fulfil:
+            Product = mocked_fulfil.model('product.product')
+            # Set the return value of the search call without
+            # hitting the server.
+            Product.search_read_all.return_value = [
+                {'id': 1},
+                {'id': 2},
+                {'id': 3},
+            ]
+
+            # Call the function
+            api_calling_method()
+
+            # Now assert
+            Product.search_read_all.assert_called()
+            Product.search_read_all.assert_called_with([], None, ['id'])
+            Product.write.assert_called_with(
+                [1, 2, 3], {'active': False}
+            )
+
+The `Product` object returned is a `mock.Mock` object and supports all
+of the `assertions supported
+<https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock.assert_called>`_
+by python Mock objects.
 
 
 Credits
