@@ -12,6 +12,8 @@ class MockFulfil(object):
     """
     responses = []
     models = {}
+    context = {}
+    subdomain = 'mock-test'
 
     def __init__(self, target, responses=None):
         self.target = target
@@ -55,3 +57,4 @@ class MockFulfil(object):
         Reset all the mocks
         """
         self.models = {}
+        self.context = {}
