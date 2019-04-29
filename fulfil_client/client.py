@@ -8,6 +8,9 @@ from functools import partial, wraps
 
 import requests
 from .serialization import JSONDecoder, JSONEncoder
+from .exceptions import (
+    UserError, ClientError, ServerError, AuthenticationError
+)
 from .signals import response_received
 
 
@@ -16,32 +19,40 @@ dumps = partial(json.dumps, cls=JSONEncoder)
 loads = partial(json.loads, object_hook=JSONDecoder())
 
 
-class Error(Exception):
-    def __init__(self, message, code):
-        super(Exception, self).__init__(message)
-        self.message = message
-        self.code = code
-
-    def __str__(self):
-        return str(self.message)
-
-
-class ServerError(Error):
-    pass
-
-
-class ClientError(Error):
-    pass
-
-
 def json_response(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         rv = function(*args, **kwargs)
         if rv.status_code != requests.codes.ok:
-            if 400 <= rv.status_code and rv.status_code < 500:
-                raise ClientError(loads(rv.text), rv.status_code)
-            raise ServerError(rv.text, rv.status_code)
+            if rv.status_code == 400:
+                # Usually an user error
+                error = loads(rv.text)
+                if error.get('type') == 'UserError':
+                    # These are error messages meant to be displayed to the
+                    # user.
+                    raise UserError(error.get('message'), error.get('code'))
+                else:
+                    # Some unknown error type. Raise a generic client error
+                    # with everything we have
+                    raise ClientError(error, rv.status_code)
+            elif rv.status_code == 401:
+                # Bearer tokens may have expired or the user may have
+                # logged out. Either way raise this error so the app
+                # can decide how to handle logouts.
+                raise AuthenticationError(loads(rv.text), rv.status_code)
+            elif 402 <= rv.status_code and rv.status_code < 500:
+                # 4XX range errors always have a JSON response
+                # with a code, message and description.
+                error = loads(rv.text)
+                raise ClientError(
+                    error.get('message', error),
+                    rv.status_code
+                )
+            else:
+                # 5XX Internal Server errors
+                raise ServerError(
+                    rv.text, rv.status_code, rv.headers.get('X-Sentry-ID')
+                )
         return loads(rv.text)
     return wrapper
 

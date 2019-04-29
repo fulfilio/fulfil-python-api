@@ -6,5 +6,5 @@ __version__ = '0.13.2'
 
 # flake8: noqa
 
-from .client import Client, Model, ServerError, SessionAuth, APIKeyAuth, \
-    BearerAuth, ClientError
+from .client import Client, Model, SessionAuth, APIKeyAuth, BearerAuth
+from .exceptions import ClientError, UserError, ServerError
