@@ -43,9 +43,11 @@ def json_response(function):
             elif 402 <= rv.status_code and rv.status_code < 500:
                 # 4XX range errors always have a JSON response
                 # with a code, message and description.
-                error = loads(rv.text)
+                error = rv.text
+                if rv.headers.get('Content-Type') == 'application/json':
+                    error = loads(rv.text).get('message', error)
                 raise ClientError(
-                    error.get('message', error),
+                    error,
                     rv.status_code
                 )
             else:

@@ -130,3 +130,9 @@ def test_wizard_implementation(oauth_client):
         action, data = result['actions'][0]
         assert 'res_id' in data
         assert len(data['res_id']) == 1
+
+
+def test_403():
+    "Connect with invalid creds and get ClientError"
+    with pytest.raises(ClientError):
+        client = Client('demo', 'xxxx')
