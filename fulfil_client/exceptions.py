@@ -1,11 +1,14 @@
 class Error(Exception):
     def __init__(self, message, code):
-        super(Exception, self).__init__(message)
         self.message = message
         self.code = code
+        super(Exception, self).__init__(message, code)
 
     def __str__(self):
         return str(self.message)
+
+    def __getnewargs__(self):
+        return (self.message, self.code,)
 
 
 class ServerError(Error):
@@ -16,8 +19,11 @@ class ServerError(Error):
     """
 
     def __init__(self, message, code, sentry_id=None):
-        super(ServerError, self).__init__(message, code)
         self.sentry_id = sentry_id
+        super(ServerError, self).__init__(message, code)
+
+    def __getnewargs__(self):
+        return (self.message, self.code, self.sentry_id)
 
 
 class ClientError(Error):
