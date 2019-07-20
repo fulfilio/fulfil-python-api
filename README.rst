@@ -242,6 +242,29 @@ Flask example
         return jsonify(oauth_token=token)
 
 
+Verify Webhooks
+---------------
+
+There is a convenience function that can verify the webhooks originating
+from Fulfil for you.
+
+.. code-block:: python
+
+   from fulfil_client import verify_webhook
+
+
+   @app.route('/webhook', methods=['POST'])
+   def webhook():
+      data = flask.request.get_data()
+      verified = verify_webhook(
+         data,
+         secret,     # This should be saved somewhere
+         flask.request.headers.get('X-Fulfil-Hmac-SHA256')
+      )
+
+      if not verified:
+         abort(401)
+
 Testing
 -------
 
