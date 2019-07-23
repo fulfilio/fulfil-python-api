@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import json
 import logging
 from collections import defaultdict
@@ -624,3 +626,25 @@ class AsyncResult(object):
         Returned only when the task is still in progress
         """
         return datetime.utcnow() - self.start_time
+
+
+def verify_webhook(data, secret, hmac_header):
+    """
+    Verify the webhook and return a true or false
+
+    :param data: Payload body of the request
+    :param secret: Base64 encoded secret of the webhook.
+                   The secret is base64 encoded when read
+                   over API or copied from UI.
+    :param hmac_header: Value of the header in the request
+    """
+    digest = hmac.new(
+        base64.b64decode(secret),
+        data.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    computed_hmac = base64.b64encode(digest)
+    return hmac.compare_digest(
+        computed_hmac,
+        hmac_header.encode('utf-8')
+    )
