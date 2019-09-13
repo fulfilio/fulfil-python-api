@@ -105,13 +105,13 @@ class Client(object):
 
     def __init__(self, subdomain,
                  api_key=None, context=None, auth=None,
-                 user_agent="Python Client"):
+                 user_agent="Python Client", base_url="fulfil.io"):
         self.subdomain = subdomain
 
         if self.subdomain == 'localhost':
             self.host = 'http://localhost:8000'
         else:
-            self.host = 'https://%s.fulfil.io' % self.subdomain
+            self.host = 'https://{}.{}'.format(self.subdomain, base_url)
 
         self.base_url = '%s/api/v1' % self.host
 
