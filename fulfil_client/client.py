@@ -422,7 +422,10 @@ class Model(object):
                 yield record
 
     @json_response
-    def find(self, filter=None, page=1, per_page=10, fields=None, context=None):
+    def find(
+        self, filter=None, page=1, per_page=10, fields=None, order=None,
+        context=None,
+    ):
         """
         Find records that match the filter.
 
@@ -440,10 +443,12 @@ class Model(object):
         :param page: The page to fetch to get paginated results
         :param per_page: The number of records to fetch per page
         :param fields: A list of field names to fetch.
+        :param order: Sorting order of result (Refer docs for order syntax)
         :param context: Any overrides to the context.
         """
         if filter is None:
             filter = []
+
         rv = self.client.session.get(
             self.path,
             params={
@@ -451,6 +456,7 @@ class Model(object):
                 'page': page,
                 'per_page': per_page,
                 'field': fields,
+                'order': dumps(order),
                 'context': dumps(context or self.client.context),
             }
         )
