@@ -2,7 +2,7 @@
 
 __author__ = 'Fulfil.IO Inc.'
 __email__ = 'hello@fulfil.io'
-__version__ = '0.14.1'
+__version__ = '0.15.1.pre1'
 
 # flake8: noqa
 
