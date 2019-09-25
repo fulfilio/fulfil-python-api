@@ -45,6 +45,12 @@ class UserError(ClientError):
     UserError is raised by the Fulfil Server when there
     is a data error or a validation fails. The error messages
     are meant to be user facing and should ideally be displayed
-    to the user.
+    to the user. User errors generally have a description too, so respect
+    that too.
     """
-    pass
+    def __init__(self, message, code, description=None):
+        self.description = description
+        super(UserError, self).__init__(message, code)
+
+    def __getnewargs__(self):
+        return (self.message, self.code, self.description)

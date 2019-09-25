@@ -32,7 +32,11 @@ def json_response(function):
                 if error.get('type') == 'UserError':
                     # These are error messages meant to be displayed to the
                     # user.
-                    raise UserError(error.get('message'), error.get('code'))
+                    raise UserError(
+                        message=error.get('message'),
+                        code=error.get('code'),
+                        description=error.get('description'),
+                    )
                 else:
                     # Some unknown error type. Raise a generic client error
                     # with everything we have
