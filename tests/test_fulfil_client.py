@@ -132,6 +132,7 @@ def test_wizard_implementation(oauth_client):
         action, data = result['actions'][0]
         assert 'res_id' in data
         assert len(data['res_id']) == 1
+    Product.delete([data['res_id']])
 
 
 def test_403():
