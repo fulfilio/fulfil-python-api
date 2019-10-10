@@ -61,7 +61,7 @@ JSONDecoder.register(
 dummy_record = namedtuple('Record', ['model_name', 'id', 'rec_name'])
 JSONDecoder.register(
     'Model', lambda dct: dummy_record(
-        dct['model_name'], dct['id'], dct['rec_name']
+        dct['model_name'], dct['id'], dct.get('rec_name')
     )
 )
 
