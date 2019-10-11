@@ -14,6 +14,7 @@ from .exceptions import (
     UserError, ClientError, ServerError, AuthenticationError
 )
 from .signals import response_received
+from .exceptions import Error  # noqa
 
 
 request_logger = logging.getLogger('fulfil_client.request')
