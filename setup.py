@@ -17,7 +17,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'pyjwt',
     'requests',
-    'requests_oauthlib',
+    'requests_oauthlib==1.1.0',
     'money',
     'babel',
     'six',
