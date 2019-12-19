@@ -9,6 +9,7 @@ from datetime import datetime
 from functools import partial, wraps
 
 import requests
+from more_itertools import chunked
 from .serialization import JSONDecoder, JSONEncoder
 from .exceptions import (
     UserError, ClientError, ServerError, AuthenticationError
@@ -410,20 +411,11 @@ class Model(object):
         if context is None:
             context = {}
 
-        if limit is None:
-            # When no limit is specified, all the records
-            # should be fetched.
-            record_count = self.search_count(domain, context=context)
-            end = record_count + offset
-        else:
-            end = limit + offset
+        # Fetch all the ids first
+        ids = self.search(domain, offset, limit, None, context=context)
 
-        for page_offset in range(offset, end, batch_size):
-            if page_offset + batch_size > end:
-                batch_size = end - page_offset
-            for record in self.search_read(
-                    domain, page_offset, batch_size,
-                    order, fields, context=context):
+        for sub_ids in chunked(ids, batch_size):
+            for record in self.read(sub_ids, fields, context=context):
                 yield record
 
     @json_response
