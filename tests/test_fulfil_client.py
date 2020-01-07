@@ -116,23 +116,23 @@ def test_raises_client_error():
 
 def test_wizard_implementation(oauth_client):
     DuplicateWizard = oauth_client.wizard('ir.model.duplicate')
-    Product = oauth_client.model('product.product')
+    Party = oauth_client.model('party.party')
 
-    existing_prodcuts = Product.search([], None, 1, None)
-    if not existing_prodcuts:
+    existing_parties = Party.search([], None, 1, None)
+    if not existing_parties:
         pytest.fail("No existing parties to duplicate")
 
-    existing_product, = existing_prodcuts
+    existing_party, = existing_parties
     with DuplicateWizard.session(
-        active_ids=[existing_product], active_id=existing_product,
-        active_model='product.product'
+        active_ids=[existing_party], active_id=existing_party,
+        active_model='party.party'
     ) as wizard:
         result = wizard.execute('duplicate_records')
         assert 'actions' in result
         action, data = result['actions'][0]
         assert 'res_id' in data
         assert len(data['res_id']) == 1
-    Product.delete([data['res_id']])
+    Party.delete(data['res_id'])
 
 
 def test_403():
