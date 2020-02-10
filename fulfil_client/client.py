@@ -385,12 +385,13 @@ class Model(object):
         return '%s/model/%s' % (self.client.base_url, self.model_name)
 
     @json_response
-    def get(self, id, context=None):
+    def get(self, id, fields=None, context=None):
         ctx = self.client.context.copy()
         ctx.update(context or {})
         rv = self.client.session.get(
             self.path + '/%d' % id,
             params={
+                'fields': fields,
                 'context': dumps(ctx),
             }
         )
