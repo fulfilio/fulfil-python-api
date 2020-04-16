@@ -8,10 +8,9 @@ https://docs.celeryproject.org
 
 This is used in setuptools to register custom endpoint
 """
-from fulfil_client.client import dumps, loads
+from fulfil_client.serialization import dumps, loads, CONTENT_TYPE
 
 
 register_args = (
-    dumps, loads,
-    'application/vnd.fulfil.v2+json', 'utf-8'
+    dumps, loads, CONTENT_TYPE, 'utf-8'
 )

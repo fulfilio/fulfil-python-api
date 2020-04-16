@@ -6,11 +6,11 @@ import logging
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from functools import partial, wraps
+from functools import wraps
 
 import requests
 from more_itertools import chunked
-from .serialization import JSONDecoder, JSONEncoder
+from .serialization import dumps, loads
 from .exceptions import (
     UserError, ClientError, ServerError, AuthenticationError
 )
@@ -19,8 +19,6 @@ from .exceptions import Error  # noqa
 
 
 request_logger = logging.getLogger('fulfil_client.request')
-dumps = partial(json.dumps, cls=JSONEncoder)
-loads = partial(json.loads, object_hook=JSONDecoder())
 
 
 def json_response(function):
