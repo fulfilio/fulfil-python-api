@@ -41,6 +41,11 @@ setup(
         'fulfil_client': 'fulfil_client',
         'fulfil_client.contrib': 'fulfil_client/contrib'
     },
+    entry_points={
+        'kombu.serializers': [
+            'fulfil = fulfil_client.contrib.kombu:register_args',
+        ],
+    },
     include_package_data=True,
     install_requires=requirements,
     license="ISCL",
