@@ -2,11 +2,15 @@
 import datetime
 from decimal import Decimal
 from collections import namedtuple
+from functools import partial
 try:
     import simplejson as json
 except ImportError:
     import json
 import base64
+
+
+CONTENT_TYPE = 'application/vnd.fulfil.v2+json'
 
 
 class JSONDecoder(object):
@@ -147,3 +151,8 @@ JSONEncoder.register(
         '__class__': 'Decimal',
         'decimal': str(o),
     })
+
+
+
+dumps = partial(json.dumps, cls=JSONEncoder)
+loads = partial(json.loads, object_hook=JSONDecoder())
