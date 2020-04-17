@@ -1,37 +1,24 @@
 import base64
+import hashlib
+import hmac
 import json
 import logging
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from functools import partial, wraps
+from functools import wraps
 
 import requests
-from .serialization import JSONDecoder, JSONEncoder
+from more_itertools import chunked
+from .serialization import dumps, loads
+from .exceptions import (
+    UserError, ClientError, ServerError, AuthenticationError
+)
 from .signals import response_received
+from .exceptions import Error  # noqa
 
 
 request_logger = logging.getLogger('fulfil_client.request')
-dumps = partial(json.dumps, cls=JSONEncoder)
-loads = partial(json.loads, object_hook=JSONDecoder())
-
-
-class Error(Exception):
-    def __init__(self, message, code):
-        super(Exception, self).__init__(message)
-        self.message = message
-        self.code = code
-
-    def __str__(self):
-        return str(self.message)
-
-
-class ServerError(Error):
-    pass
-
-
-class ClientError(Error):
-    pass
 
 
 def json_response(function):
@@ -39,9 +26,41 @@ def json_response(function):
     def wrapper(*args, **kwargs):
         rv = function(*args, **kwargs)
         if rv.status_code != requests.codes.ok:
-            if 400 <= rv.status_code and rv.status_code < 500:
-                raise ClientError(loads(rv.text), rv.status_code)
-            raise ServerError(rv.text, rv.status_code)
+            if rv.status_code == 400:
+                # Usually an user error
+                error = loads(rv.text)
+                if error.get('type') == 'UserError':
+                    # These are error messages meant to be displayed to the
+                    # user.
+                    raise UserError(
+                        message=error.get('message'),
+                        code=error.get('code'),
+                        description=error.get('description'),
+                    )
+                else:
+                    # Some unknown error type. Raise a generic client error
+                    # with everything we have
+                    raise ClientError(error, rv.status_code)
+            elif rv.status_code == 401:
+                # Bearer tokens may have expired or the user may have
+                # logged out. Either way raise this error so the app
+                # can decide how to handle logouts.
+                raise AuthenticationError(loads(rv.text), rv.status_code)
+            elif 402 <= rv.status_code and rv.status_code < 500:
+                # 4XX range errors always have a JSON response
+                # with a code, message and description.
+                error = rv.text
+                if rv.headers.get('Content-Type') == 'application/json':
+                    error = loads(rv.text).get('message', error)
+                raise ClientError(
+                    error,
+                    rv.status_code
+                )
+            else:
+                # 5XX Internal Server errors
+                raise ServerError(
+                    rv.text, rv.status_code, rv.headers.get('X-Sentry-ID')
+                )
         return loads(rv.text)
     return wrapper
 
@@ -390,24 +409,18 @@ class Model(object):
         if context is None:
             context = {}
 
-        if limit is None:
-            # When no limit is specified, all the records
-            # should be fetched.
-            record_count = self.search_count(domain, context=context)
-            end = record_count + offset
-        else:
-            end = limit + offset
+        # Fetch all the ids first
+        ids = self.search(domain, offset, limit, None, context=context)
 
-        for page_offset in range(offset, end, batch_size):
-            if page_offset + batch_size > end:
-                batch_size = end - page_offset
-            for record in self.search_read(
-                    domain, page_offset, batch_size,
-                    order, fields, context=context):
+        for sub_ids in chunked(ids, batch_size):
+            for record in self.read(sub_ids, fields, context=context):
                 yield record
 
     @json_response
-    def find(self, filter=None, page=1, per_page=10, fields=None, context=None):
+    def find(
+        self, filter=None, page=1, per_page=10, fields=None, order=None,
+        context=None,
+    ):
         """
         Find records that match the filter.
 
@@ -425,10 +438,12 @@ class Model(object):
         :param page: The page to fetch to get paginated results
         :param per_page: The number of records to fetch per page
         :param fields: A list of field names to fetch.
+        :param order: Sorting order of result (Refer docs for order syntax)
         :param context: Any overrides to the context.
         """
         if filter is None:
             filter = []
+
         rv = self.client.session.get(
             self.path,
             params={
@@ -436,6 +451,7 @@ class Model(object):
                 'page': page,
                 'per_page': per_page,
                 'field': fields,
+                'order': dumps(order),
                 'context': dumps(context or self.client.context),
             }
         )
@@ -611,3 +627,25 @@ class AsyncResult(object):
         Returned only when the task is still in progress
         """
         return datetime.utcnow() - self.start_time
+
+
+def verify_webhook(data, secret, hmac_header):
+    """
+    Verify the webhook and return a true or false
+
+    :param data: Payload body of the request
+    :param secret: Base64 encoded secret of the webhook.
+                   The secret is base64 encoded when read
+                   over API or copied from UI.
+    :param hmac_header: Value of the header in the request
+    """
+    digest = hmac.new(
+        base64.b64decode(secret),
+        data.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    computed_hmac = base64.b64encode(digest)
+    return hmac.compare_digest(
+        computed_hmac,
+        hmac_header.encode('utf-8')
+    )

@@ -5,6 +5,7 @@ Test fulfilio data structures
 
 pylint option block-disable
 """
+import pickle
 import pytest
 import random
 from decimal import Decimal
@@ -13,6 +14,9 @@ from babel.numbers import format_currency
 from money import Money
 from fulfil_client.model import (
     ModificationTrackingDict, Query, StringType, MoneyType
+)
+from fulfil_client.exceptions import (
+    ServerError, ClientError, AuthenticationError, UserError
 )
 
 
@@ -235,3 +239,22 @@ class TestMoneyType(object):
         credit_limit = contact.query.first().credit_limit_amount
         assert credit_limit.amount == Decimal('100000')
         assert credit_limit.currency == 'USD'  # hard coded in model property
+
+
+@pytest.mark.parametrize("error_class", [
+    ServerError, ClientError, AuthenticationError,
+    UserError
+])
+def test_exception_pickling(error_class):
+    "Test that exceptions can be pickled"
+    error = error_class("Shit Happens", "123")
+    if hasattr(error, "sentry_id"):
+        error.sentry_id = "alpha-bravo-charlie"
+
+    # Now pickle and unpickle the error class
+    error_unpickled = pickle.loads(pickle.dumps(error))
+
+    assert error.code == error_unpickled.code
+    assert error.message == error_unpickled.message
+    if hasattr(error, "sentry_id"):
+        assert error.sentry_id == error_unpickled.sentry_id

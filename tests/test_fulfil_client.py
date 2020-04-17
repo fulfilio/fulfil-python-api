@@ -115,18 +115,27 @@ def test_raises_client_error():
 
 
 def test_wizard_implementation(oauth_client):
-    SaleReturnWizard = oauth_client.wizard('sale.return_sale')
-    Sale = oauth_client.model('sale.sale')
+    DuplicateWizard = oauth_client.wizard('ir.model.duplicate')
+    Party = oauth_client.model('party.party')
 
-    existing_orders = Sale.search([], None, 1, None)
-    if not existing_orders:
-        pytest.fail("No existing order to reverse")
+    existing_parties = Party.search([], None, 1, None)
+    if not existing_parties:
+        pytest.fail("No existing parties to duplicate")
 
-    existing_order, = existing_orders
-    with SaleReturnWizard.session(
-            active_ids=[existing_order], active_id=existing_order) as wizard:
-        result = wizard.execute('return_')
+    existing_party, = existing_parties
+    with DuplicateWizard.session(
+        active_ids=[existing_party], active_id=existing_party,
+        active_model='party.party'
+    ) as wizard:
+        result = wizard.execute('duplicate_records')
         assert 'actions' in result
         action, data = result['actions'][0]
         assert 'res_id' in data
         assert len(data['res_id']) == 1
+    Party.delete(data['res_id'])
+
+
+def test_403():
+    "Connect with invalid creds and get ClientError"
+    with pytest.raises(ClientError):
+        Client('demo', 'xxxx')

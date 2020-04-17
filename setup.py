@@ -21,12 +21,13 @@ requirements = [
     'money',
     'babel',
     'six',
+    'more-itertools',
 ]
 
 
 setup(
     name='fulfil_client',
-    version='0.14.1',
+    version='1.0.0',
     description="Fulfil REST API Client in Python",
     long_description=readme + '\n\n' + history,
     author="Fulfil.IO Inc.",
@@ -39,6 +40,11 @@ setup(
     package_dir={
         'fulfil_client': 'fulfil_client',
         'fulfil_client.contrib': 'fulfil_client/contrib'
+    },
+    entry_points={
+        'kombu.serializers': [
+            'fulfil = fulfil_client.contrib.kombu:register_args',
+        ],
     },
     include_package_data=True,
     install_requires=requirements,
