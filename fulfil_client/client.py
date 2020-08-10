@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import hmac
-import json
 import logging
 from collections import defaultdict
 from contextlib import contextmanager
@@ -9,10 +8,12 @@ from datetime import datetime
 from functools import wraps
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from more_itertools import chunked
 from .serialization import dumps, loads
 from .exceptions import (
-    UserError, ClientError, ServerError, AuthenticationError
+    UserError, ClientError, ServerError, AuthenticationError, RateLimitError
 )
 from .signals import response_received
 from .exceptions import Error  # noqa
@@ -46,6 +47,8 @@ def json_response(function):
                 # logged out. Either way raise this error so the app
                 # can decide how to handle logouts.
                 raise AuthenticationError(loads(rv.text), rv.status_code)
+            elif rv.status_code == 429:
+                raise RateLimitError(loads(rv.text), rv.status_code)
             elif 402 <= rv.status_code and rv.status_code < 500:
                 # 4XX range errors always have a JSON response
                 # with a code, message and description.
@@ -109,7 +112,8 @@ class Client(object):
 
     def __init__(self, subdomain,
                  api_key=None, context=None, auth=None,
-                 user_agent="Python Client", base_url="fulfil.io"):
+                 user_agent="Python Client", base_url="fulfil.io",
+                 retry_on_rate_limit=False):
         self.subdomain = subdomain
 
         if self.subdomain == 'localhost':
@@ -124,6 +128,19 @@ class Client(object):
             self.set_auth(APIKeyAuth(api_key))
         else:
             self.set_auth(auth)
+
+        if retry_on_rate_limit:
+            retries = 5
+            retry = Retry(
+                total=retries,
+                read=retries,
+                connect=retries,
+                backoff_factor=0.5,
+                status_forcelist=(429, ),
+            )
+            adapter = HTTPAdapter(max_retries=retry)
+            self.session.mount('http://', adapter)
+            self.session.mount('https://', adapter)
 
         self.session.headers.update({
             'User-Agent': user_agent,
