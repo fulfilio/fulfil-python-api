@@ -54,3 +54,7 @@ class UserError(ClientError):
 
     def __getnewargs__(self):
         return (self.message, self.code, self.description)
+
+
+class RateLimitError(ClientError):
+    pass
