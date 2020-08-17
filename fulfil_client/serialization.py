@@ -8,9 +8,10 @@ try:
 except ImportError:
     import json
 import base64
+import isodate
 
 
-CONTENT_TYPE = 'application/vnd.fulfil.v2+json'
+CONTENT_TYPE = 'application/vnd.fulfil.v3+json'
 
 
 class JSONDecoder(object):
@@ -28,38 +29,57 @@ class JSONDecoder(object):
         return dct
 
 
-JSONDecoder.register(
-    'datetime',
-    lambda dct: datetime.datetime(
-        dct['year'], dct['month'], dct['day'],
-        dct['hour'], dct['minute'], dct['second'], dct['microsecond']
-    )
-)
-JSONDecoder.register(
-    'date',
-    lambda dct: datetime.date(dct['year'], dct['month'], dct['day'])
-)
-JSONDecoder.register(
-    'time',
-    lambda dct: datetime.time(
-        dct['hour'], dct['minute'], dct['second'], dct['microsecond']
-    )
-)
-JSONDecoder.register(
-    'timedelta',
-    lambda dct: datetime.timedelta(seconds=dct['seconds'])
-)
+def register_decoder(klass):
+    def decorator(decoder):
+        assert klass not in JSONDecoder.decoders
+        JSONDecoder.decoders[klass] = decoder
+    return decorator
 
 
-def _bytes_decoder(dct):
+@register_decoder('datetime')
+def datetime_decoder(v):
+    if v.get('iso_string'):
+        return isodate.parse_datetime(v['iso_string'])
+    return datetime.datetime(
+        v['year'], v['month'], v['day'],
+        v['hour'], v['minute'], v['second'], v['microsecond']
+    )
+
+
+@register_decoder('date')
+def date_decoder(v):
+    if v.get('iso_string'):
+        return isodate.parse_date(v['iso_string'])
+    return datetime.date(
+        v['year'], v['month'], v['day'],
+    )
+
+
+@register_decoder('time')
+def time_decoder(v):
+    if v.get('iso_string'):
+        return isodate.parse_time(v['iso_string'])
+    return datetime.time(
+        v['hour'], v['minute'], v['second'], v['microsecond']
+    )
+
+
+@register_decoder('timedelta')
+def timedelta_decoder(v):
+    if v.get('iso_string'):
+        return isodate.parse_duration(v['iso_string'])
+    return datetime.timedelta(seconds=v['seconds'])
+
+
+@register_decoder('bytes')
+def _bytes_decoder(v):
     cast = bytearray if bytes == str else bytes
-    return cast(base64.decodestring(dct['base64'].encode('utf-8')))
+    return cast(base64.decodestring(v['base64'].encode('utf-8')))
 
 
-JSONDecoder.register('bytes', _bytes_decoder)
-JSONDecoder.register(
-    'Decimal', lambda dct: Decimal(dct['decimal'])
-)
+@register_decoder('Decimal')
+def decimal_decoder(v):
+    return Decimal(v['decimal'])
 
 
 dummy_record = namedtuple('Record', ['model_name', 'id', 'rec_name'])
@@ -106,43 +126,34 @@ JSONEncoder.register(
     datetime.datetime,
     lambda o: {
         '__class__': 'datetime',
-        'year': o.year,
-        'month': o.month,
-        'day': o.day,
-        'hour': o.hour,
-        'minute': o.minute,
-        'second': o.second,
-        'microsecond': o.microsecond,
         'iso_string': o.isoformat(),
-    })
+    }
+)
 JSONEncoder.register(
     datetime.date,
     lambda o: {
         '__class__': 'date',
-        'year': o.year,
-        'month': o.month,
-        'day': o.day,
         'iso_string': o.isoformat(),
-    })
+    }
+)
 JSONEncoder.register(
     datetime.time,
     lambda o: {
         '__class__': 'time',
-        'hour': o.hour,
-        'minute': o.minute,
-        'second': o.second,
-        'microsecond': o.microsecond,
-    })
+        'iso_string': o.isoformat(),
+    }
+)
 JSONEncoder.register(
     datetime.timedelta,
     lambda o: {
         '__class__': 'timedelta',
-        'seconds': o.total_seconds(),
-    })
-_bytes_encoder = lambda o: {
+        'iso_string': isodate.duration_isoformat(o),
+    }
+)
+_bytes_encoder = lambda o: {  # noqa
     '__class__': 'bytes',
     'base64': base64.encodestring(o).decode('utf-8'),
-    }
+}
 JSONEncoder.register(bytes, _bytes_encoder)
 JSONEncoder.register(bytearray, _bytes_encoder)
 JSONEncoder.register(
@@ -150,8 +161,8 @@ JSONEncoder.register(
     lambda o: {
         '__class__': 'Decimal',
         'decimal': str(o),
-    })
-
+    }
+)
 
 
 dumps = partial(json.dumps, cls=JSONEncoder)
