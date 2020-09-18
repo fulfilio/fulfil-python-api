@@ -121,7 +121,7 @@ class Client(object):
         else:
             self.host = 'https://{}.{}'.format(self.subdomain, base_url)
 
-        self.base_url = '%s/api/v1' % self.host
+        self.base_url = '%s/api/v2' % self.host
 
         self.session = requests.Session()
         if api_key is not None:
