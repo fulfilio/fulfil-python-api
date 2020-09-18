@@ -27,7 +27,7 @@ requirements = [
 
 setup(
     name='fulfil_client',
-    version='1.1.0',
+    version='2.0.0',
     description="Fulfil REST API Client in Python",
     long_description=readme + '\n\n' + history,
     author="Fulfil.IO Inc.",
