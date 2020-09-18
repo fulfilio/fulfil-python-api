@@ -1,3 +1,8 @@
+    The V1 API is officially deprecated as of March 31, 2020.
+
+    As of Sep 2020, if you are still using API V1, you are in-fact accessing V2.
+    The V2 API is mostly backwards compatible with the V1 API.
+
 ===============================
 Fulfil IO Python Client
 ===============================
