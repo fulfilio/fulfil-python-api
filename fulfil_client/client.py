@@ -427,7 +427,7 @@ class Model(object):
             context = {}
 
         # Fetch all the ids first
-        ids = self.search(domain, offset, limit, None, context=context)
+        ids = self.search(domain, offset, limit, order, context=context)
 
         for sub_ids in chunked(ids, batch_size):
             for record in self.read(sub_ids, fields, context=context):
