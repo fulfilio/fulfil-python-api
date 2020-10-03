@@ -386,7 +386,7 @@ class Model(object):
             )
             rv = self.client.session.put(
                 self.path + '/%s' % name,
-                dumps(args),
+                dumps(args or kwargs),
                 params={
                     'context': dumps(context),
                 }
