@@ -53,7 +53,7 @@ JSONDecoder.register(
 
 def _bytes_decoder(dct):
     cast = bytearray if bytes == str else bytes
-    return cast(base64.decodestring(dct['base64'].encode('utf-8')))
+    return cast(base64.b64decode(dct['base64'].encode('utf-8')))
 
 
 JSONDecoder.register('bytes', _bytes_decoder)
