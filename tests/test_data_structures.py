@@ -183,7 +183,7 @@ class TestModel(object):
 
     def test_multi_cache_empty_list(self, res_user_model_with_cache):
         "Should not raise an error"
-        records = res_user_model_with_cache.from_cache_multi([])
+        res_user_model_with_cache.from_cache_multi([])
 
     def test_inequality_of_saved_records(self, res_user_model, module_model):
         assert res_user_model.query.first() != module_model.query.first()

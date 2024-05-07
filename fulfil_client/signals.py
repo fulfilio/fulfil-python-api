@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 flask.signals
 ~~~~~~~~~~~~~
@@ -43,7 +42,7 @@ except ImportError:
                 "not installed."
             )
 
-        send = lambda *a, **kw: None
+        send = lambda *a, **kw: None  # noqa
         connect = disconnect = has_receivers_for = receivers_for = (
             temporarily_connected_to
         ) = connected_to = _fail
