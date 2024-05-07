@@ -5,6 +5,7 @@ Fulfil.IO Model Helper
 A collection of model layer APIs to write lesser code
 and better
 """
+
 import six
 import logging
 import functools
@@ -21,7 +22,7 @@ if six.PY2:
     from future_builtins import zip
 
 
-cache_logger = logging.getLogger('fulfil_client.cache')
+cache_logger = logging.getLogger("fulfil_client.cache")
 
 
 class BaseType(object):
@@ -61,60 +62,52 @@ class BaseType(object):
 
 
 class IntType(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', int)
+        kwargs.setdefault("cast", int)
         super(IntType, self).__init__(*args, **kwargs)
 
 
 class BooleanType(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', bool)
+        kwargs.setdefault("cast", bool)
         super(BooleanType, self).__init__(*args, **kwargs)
 
 
 class StringType(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', six.text_type)
+        kwargs.setdefault("cast", six.text_type)
         super(StringType, self).__init__(*args, **kwargs)
 
 
 class DecimalType(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', Decimal)
+        kwargs.setdefault("cast", Decimal)
         super(DecimalType, self).__init__(*args, **kwargs)
 
 
 class FloatType(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', float)
+        kwargs.setdefault("cast", float)
         super(FloatType, self).__init__(*args, **kwargs)
 
 
 class DateTime(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', datetime)
+        kwargs.setdefault("cast", datetime)
         super(DateTime, self).__init__(*args, **kwargs)
 
 
 class Date(BaseType):
-
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('cast', date)
+        kwargs.setdefault("cast", date)
         super(Date, self).__init__(*args, **kwargs)
 
 
 class One2ManyType(BaseType):
-
     def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
         self.cache = cache
-        kwargs.setdefault('cast', list)
+        kwargs.setdefault("cast", list)
         super(One2ManyType, self).__init__(*args, **kwargs)
 
     def __get__(self, instance, owner):
@@ -155,7 +148,7 @@ class MoneyType(DecimalType):
                 return None
             return Money(
                 instance._values.get(self.name, self.default),
-                getattr(instance, self.currency_field)
+                getattr(instance, self.currency_field),
             )
         else:
             return self
@@ -170,6 +163,7 @@ class ModelType(IntType):
     :param cache: If set, it looks up the record in the cache backend of the
                   underlying model before querying the server to fetch records.
     """
+
     def __init__(self, model_name, cache=False, *args, **kwargs):
         self.model_name = model_name
         self.cache = cache
@@ -192,27 +186,27 @@ class NamedDescriptorResolverMetaClass(type):
     """
 
     def __new__(cls, classname, bases, class_dict):
-        abstract = class_dict.get('__abstract__', False)
-        model_name = class_dict.get('__model_name__')
+        abstract = class_dict.get("__abstract__", False)
+        model_name = class_dict.get("__model_name__")
 
         if not abstract and not model_name:
             for base in bases:
-                if hasattr(base, '__model_name__'):
+                if hasattr(base, "__model_name__"):
                     model_name = base.__model_name__
                     break
             else:
-                raise Exception('__model_name__ not defined for model')
+                raise Exception("__model_name__ not defined for model")
 
         fields = set([])
         eager_fields = set([])
         for base in bases:
-            if hasattr(base, '_fields'):
+            if hasattr(base, "_fields"):
                 fields |= set(base._fields)
-            if hasattr(base, '_eager_fields'):
+            if hasattr(base, "_eager_fields"):
                 eager_fields |= set(base._eager_fields)
 
-        fields |= class_dict.get('_fields', set([]))
-        eager_fields |= class_dict.get('_eager_fields', set([]))
+        fields |= class_dict.get("_fields", set([]))
+        eager_fields |= class_dict.get("_eager_fields", set([]))
 
         # Iterate through the new class' __dict__ to:
         #
@@ -226,8 +220,8 @@ class NamedDescriptorResolverMetaClass(type):
                 if attr.eager:
                     eager_fields.add(name)
 
-        class_dict['_eager_fields'] = eager_fields
-        class_dict['_fields'] = fields | eager_fields
+        class_dict["_eager_fields"] = eager_fields
+        class_dict["_fields"] = fields | eager_fields
 
         # Call super and continue class creation
         rv = type.__new__(cls, classname, bases, class_dict)
@@ -265,6 +259,7 @@ def return_instances(function):
         map_fn = query.instance_class
         for record in function(*args, **kwargs):
             yield map_fn(record) if map_fn else record
+
     return wrapper
 
 
@@ -279,10 +274,11 @@ def return_instance(function):
             return query.instance_class(**result)
         else:
             return result
+
     return wrapper
 
 
-class classproperty(object):    # NOQA
+class classproperty(object):  # NOQA
     def __init__(self, f):
         self.f = f
 
@@ -308,8 +304,7 @@ class Query(object):
 
     @property
     def fields(self):
-        return self.instance_class and tuple(self.instance_class._fields) or \
-                None
+        return self.instance_class and tuple(self.instance_class._fields) or None
 
     def __copy__(self):
         """
@@ -335,7 +330,7 @@ class Query(object):
     def context(self):
         "Return the context to execute the query"
         return {
-            'active_test': self.active_only,
+            "active_test": self.active_only,
         }
 
     def _copy(self):
@@ -364,18 +359,14 @@ class Query(object):
 
     def count(self):
         "Return a count of rows this Query would return."
-        return self.rpc_model.search_count(
-            self.domain, context=self.context
-        )
+        return self.rpc_model.search_count(self.domain, context=self.context)
 
     def exists(self):
         """
         A convenience method that returns True if a record
         satisfying the query exists
         """
-        return self.rpc_model.search_count(
-            self.domain, context=self.context
-        ) > 0
+        return self.rpc_model.search_count(self.domain, context=self.context) > 0
 
     def show_active_only(self, state):
         """
@@ -392,9 +383,7 @@ class Query(object):
         """
         query = self._copy()
         for field, value in kwargs.items():
-            query.domain.append(
-                (field, '=', value)
-            )
+            query.domain.append((field, "=", value))
         return query
 
     def filter_by_domain(self, domain):
@@ -412,8 +401,7 @@ class Query(object):
         doesn't contain any row.
         """
         results = self.rpc_model.search_read(
-            self.domain, None, 1, self._order_by, self.fields,
-            context=self.context
+            self.domain, None, 1, self._order_by, self.fields, context=self.context
         )
         return results and results[0] or None
 
@@ -426,11 +414,9 @@ class Query(object):
         This returns a record whether active or not.
         """
         ctx = self.context.copy()
-        ctx['active_test'] = False
+        ctx["active_test"] = False
         results = self.rpc_model.search_read(
-            [('id', '=', id)],
-            None, None, None, self.fields,
-            context=ctx
+            [("id", "=", id)], None, None, None, self.fields, context=ctx
         )
         return results and results[0] or None
 
@@ -460,8 +446,7 @@ class Query(object):
         found.
         """
         results = self.rpc_model.search_read(
-            self.domain, 2, None, self._order_by, self.fields,
-            context=self.context
+            self.domain, 2, None, self._order_by, self.fields, context=self.context
         )
         if not results:
             raise fulfil_client.exc.NoResultFound
@@ -509,7 +494,7 @@ class Query(object):
         """
         ids = self.rpc_model.search(self.domain, context=self.context)
         if ids:
-            self.rpc_model.write(ids, {'active': False})
+            self.rpc_model.write(ids, {"active": False})
 
 
 @six.add_metaclass(NamedDescriptorResolverMetaClass)
@@ -531,7 +516,7 @@ class Model(object):
         values.update(kwargs)
 
         if id is not None:
-            values['id'] = id
+            values["id"] = id
 
         # Now create a modification tracking dictionary
         self._values = ModificationTrackingDict(values)
@@ -539,11 +524,7 @@ class Model(object):
     @classmethod
     def get_cache_key(cls, id):
         "Return a cache key for the given id"
-        return '%s:%s:%s' % (
-            cls.fulfil_client.subdomain,
-            cls.__model_name__,
-            id
-        )
+        return "%s:%s:%s" % (cls.fulfil_client.subdomain, cls.__model_name__, id)
 
     @property
     def cache_key(self):
@@ -579,15 +560,13 @@ class Model(object):
                     misses.append(id)
 
         if misses:
-            cache_logger.warn(
-                "MISS::MULTI::%s::%s" % (cls.__model_name__, misses)
-            )
+            cache_logger.warn("MISS::MULTI::%s::%s" % (cls.__model_name__, misses))
 
         if misses and not ignore_misses:
             # Get the records in bulk for misses
             rows = cls.rpc.read(misses, tuple(cls._fields))
             for row in rows:
-                record = cls(id=row['id'], values=row)
+                record = cls(id=row["id"], values=row)
                 record.store_in_cache()
                 results.append(record)
 
@@ -642,13 +621,15 @@ class Model(object):
         """
         Return a set of changes
         """
-        return dict([
-            (field_name, self._values[field_name])
-            for field_name in self._values.changes
-        ])
+        return dict(
+            [
+                (field_name, self._values[field_name])
+                for field_name in self._values.changes
+            ]
+        )
 
     @classproperty
-    def query(cls):     # NOQA
+    def query(cls):  # NOQA
         return Query(cls.get_rpc_model(), cls)
 
     @property
@@ -657,7 +638,7 @@ class Model(object):
         return len(self._values) > 0
 
     @classproperty
-    def rpc(cls):       # NOQA
+    def rpc(cls):  # NOQA
         "Returns an RPC client for the Fulfil.IO model with same name"
         return cls.get_rpc_model()
 
@@ -726,21 +707,21 @@ class Model(object):
     @property
     def __url__(self):
         "Return the API URL for the record"
-        return '/'.join([
-            self.rpc.client.base_url,
-            self.__model_name__,
-            six.text_type(self.id)
-        ])
+        return "/".join(
+            [self.rpc.client.base_url, self.__model_name__, six.text_type(self.id)]
+        )
 
     @property
     def __client_url__(self):
         "Return the Client URL for the record"
-        return '/'.join([
-            self.rpc.client.host,
-            'client/#/model',
-            self.__model_name__,
-            six.text_type(self.id)
-        ])
+        return "/".join(
+            [
+                self.rpc.client.host,
+                "client/#/model",
+                self.__model_name__,
+                six.text_type(self.id),
+            ]
+        )
 
 
 def model_base(fulfil_client, cache_backend=None, cache_expire=10 * 60):
@@ -751,13 +732,13 @@ def model_base(fulfil_client, cache_backend=None, cache_expire=10 * 60):
     This design is inspired by the declarative base pattern in SQL Alchemy.
     """
     return type(
-        'BaseModel',
+        "BaseModel",
         (Model,),
         {
-            'fulfil_client': fulfil_client,
-            'cache_backend': cache_backend,
-            'cache_expire': cache_expire,
-            '__abstract__': True,
-            '__modelregistry__': {},
+            "fulfil_client": fulfil_client,
+            "cache_backend": cache_backend,
+            "cache_expire": cache_expire,
+            "__abstract__": True,
+            "__modelregistry__": {},
         },
     )

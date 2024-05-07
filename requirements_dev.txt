@@ -1,3 +1,4 @@
 pytest
 bumpversion
 mock
+redis
