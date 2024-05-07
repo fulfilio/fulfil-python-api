@@ -8,7 +8,10 @@ class Error(Exception):
         return str(self.message)
 
     def __getnewargs__(self):
-        return (self.message, self.code,)
+        return (
+            self.message,
+            self.code,
+        )
 
 
 class ServerError(Error):
@@ -37,6 +40,7 @@ class AuthenticationError(ClientError):
     This could be because a token expired or becuase the auth
     is just invalid.
     """
+
     pass
 
 
@@ -48,6 +52,7 @@ class UserError(ClientError):
     to the user. User errors generally have a description too, so respect
     that too.
     """
+
     def __init__(self, message, code, description=None):
         self.description = description
         super(UserError, self).__init__(message, code)

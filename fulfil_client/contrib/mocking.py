@@ -10,10 +10,11 @@ class MockFulfil(object):
     A Mock object that helps mock away the Fulfil API
     for testing.
     """
+
     responses = []
     models = {}
     context = {}
-    subdomain = 'mock-test'
+    subdomain = "mock-test"
 
     def __init__(self, target, responses=None):
         self.target = target
@@ -31,9 +32,7 @@ class MockFulfil(object):
         return type is None
 
     def model(self, model_name):
-        return self.models.setdefault(
-            model_name, mock.MagicMock(name=model_name)
-        )
+        return self.models.setdefault(model_name, mock.MagicMock(name=model_name))
 
     def start(self):
         """
@@ -42,9 +41,7 @@ class MockFulfil(object):
         self._patcher = mock.patch(target=self.target)
         MockClient = self._patcher.start()
         instance = MockClient.return_value
-        instance.model.side_effect = mock.Mock(
-            side_effect=self.model
-        )
+        instance.model.side_effect = mock.Mock(side_effect=self.model)
 
     def stop(self):
         """

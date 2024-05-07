@@ -16,7 +16,6 @@ CONTENT_TYPE = "application/vnd.fulfil.v3+json"
 
 
 class JSONDecoder(object):
-
     decoders = {}
 
     @classmethod
