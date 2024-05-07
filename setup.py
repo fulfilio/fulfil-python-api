@@ -22,6 +22,7 @@ requirements = [
     'babel',
     'six',
     'more-itertools',
+    'isodate',
 ]
 
 
