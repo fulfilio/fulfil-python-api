@@ -1,4 +1,3 @@
-import pytest
 import fulfil_client
 from fulfil_client.contrib.mocking import MockFulfil
 

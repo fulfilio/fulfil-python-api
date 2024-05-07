@@ -5,8 +5,6 @@ import json
 from fulfil_client.serialization import (
     dumps,
     loads,
-    JSONDecoder,
-    JSONEncoder,
 )
 
 import pytest
