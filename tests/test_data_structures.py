@@ -5,6 +5,7 @@ Test fulfilio data structures
 
 pylint option block-disable
 """
+
 import pickle
 import pytest
 import random
@@ -12,11 +13,12 @@ from decimal import Decimal
 from babel.numbers import format_currency
 
 from money import Money
-from fulfil_client.model import (
-    ModificationTrackingDict, Query, StringType, MoneyType
-)
+from fulfil_client.model import ModificationTrackingDict, Query, StringType, MoneyType
 from fulfil_client.exceptions import (
-    ServerError, ClientError, AuthenticationError, UserError
+    ServerError,
+    ClientError,
+    AuthenticationError,
+    UserError,
 )
 
 
@@ -25,51 +27,51 @@ def mtd():
     """
     Return a sample Modification Tracking Dictionary
     """
-    return ModificationTrackingDict({
-        'a': 'apple',
-        'b': 'box',
-        'l': [1, 2, 3],
-    })
+    return ModificationTrackingDict(
+        {
+            "a": "apple",
+            "b": "box",
+            "l": [1, 2, 3],
+        }
+    )
 
 
 class TestModificationTrackingDict(object):
-
     def test_no_changes_on_initial_dict(self, mtd):
         assert len(mtd.changes) == 0
 
     def test_no_changes_on_same_value(self, mtd):
-        mtd['a'] = 'apple'  # nothing changes
+        mtd["a"] = "apple"  # nothing changes
         assert len(mtd.changes) == 0
 
     def test_no_changes_on_same_value_on_update(self, mtd):
-        mtd.update({'a': 'apple'})
+        mtd.update({"a": "apple"})
         assert len(mtd.changes) == 0
 
     def test_changes_on_setter(self, mtd):
-        mtd['b'] = 'ball'   # big change
+        mtd["b"] = "ball"  # big change
         assert len(mtd.changes) == 1
-        assert 'b' in mtd.changes
+        assert "b" in mtd.changes
 
     def test_changes_on_update(self, mtd):
-        mtd.update({'b': 'ball'})   # big change
+        mtd.update({"b": "ball"})  # big change
         assert len(mtd.changes) == 1
-        assert 'b' in mtd.changes
+        assert "b" in mtd.changes
 
     def test_changes_on_new_key(self, mtd):
-        mtd['c'] = 'cat'
+        mtd["c"] = "cat"
         assert len(mtd.changes) == 1
-        assert 'c' in mtd.changes
+        assert "c" in mtd.changes
 
 
 @pytest.fixture
 def query(client):
     return Query(
-        client.model('res.user'),
+        client.model("res.user"),
     )
 
 
 class TestQuery(object):
-
     def test_copyability_of_query(self, query):
         query._copy()
 
@@ -86,31 +88,33 @@ class TestQuery(object):
 @pytest.fixture
 def res_user_model(Model):
     class ResUserModel(Model):
-        __model_name__ = 'res.user'
+        __model_name__ = "res.user"
         name = StringType()
+
     return ResUserModel
 
 
 @pytest.fixture
 def res_user_model_with_cache(ModelWithCache):
     class ResUserModel(ModelWithCache):
-        __model_name__ = 'res.user'
+        __model_name__ = "res.user"
         name = StringType()
+
     return ResUserModel
 
 
 @pytest.fixture
 def sale_order_model(Model):
     class SaleOrderModel(Model):
-        __model_name__ = 'sale.sale'
-        _eager_fields = set(['currency.code'])
+        __model_name__ = "sale.sale"
+        _eager_fields = set(["currency.code"])
 
         number = StringType()
-        total_amount = MoneyType('currency_code')
+        total_amount = MoneyType("currency_code")
 
         @property
         def currency_code(self):
-            return self._values['currency.code']
+            return self._values["currency.code"]
 
     return SaleOrderModel
 
@@ -118,13 +122,13 @@ def sale_order_model(Model):
 @pytest.fixture
 def product_model(Model):
     class ProductModel(Model):
-        __model_name__ = 'product.product'
+        __model_name__ = "product.product"
 
-        list_price = MoneyType('currency_code')
+        list_price = MoneyType("currency_code")
 
         @property
         def currency_code(self):
-            return 'USD'
+            return "USD"
 
     return ProductModel
 
@@ -132,34 +136,35 @@ def product_model(Model):
 @pytest.fixture
 def contact_model(Model):
     class ContactModel(Model):
-        __model_name__ = 'party.party'
+        __model_name__ = "party.party"
 
         name = StringType()
-        credit_limit_amount = MoneyType('currency_code')
+        credit_limit_amount = MoneyType("currency_code")
 
         @property
         def currency_code(self):
-            return 'USD'
+            return "USD"
+
     return ContactModel
 
 
 @pytest.fixture
 def module_model(Model):
     class ModuleModel(Model):
-        __model_name__ = 'ir.module'
+        __model_name__ = "ir.module"
         name = StringType()
+
     return ModuleModel
 
 
 class TestModel(object):
-
     def test_model_change_tracking(self, res_user_model):
         user = res_user_model.query.first()
         user.name = user.name
         assert not bool(user.changes)
 
         user.name = "Not real name"
-        assert 'name' in user.changes
+        assert "name" in user.changes
 
     def test_equality_of_saved_records(self, res_user_model):
         user = res_user_model.query.first()
@@ -178,7 +183,7 @@ class TestModel(object):
 
     def test_multi_cache_empty_list(self, res_user_model_with_cache):
         "Should not raise an error"
-        records = res_user_model_with_cache.from_cache_multi([])
+        res_user_model_with_cache.from_cache_multi([])
 
     def test_inequality_of_saved_records(self, res_user_model, module_model):
         assert res_user_model.query.first() != module_model.query.first()
@@ -196,20 +201,19 @@ class TestModel(object):
 
 
 class TestMoneyType(object):
-
     def test_display_format(self, sale_order_model):
         order = sale_order_model.query.first()
         assert isinstance(order.total_amount, Money)
         assert isinstance(order.total_amount.amount, Decimal)
-        assert order.total_amount.format('en_US') == format_currency(
-            order._values['total_amount'],
-            currency=order._values['currency.code'],
-            locale='en_US'
+        assert order.total_amount.format("en_US") == format_currency(
+            order._values["total_amount"],
+            currency=order._values["currency.code"],
+            locale="en_US",
         )
-        assert order.total_amount.format('fr_FR') == format_currency(
-            order._values['total_amount'],
-            currency=order._values['currency.code'],
-            locale='fr_FR'
+        assert order.total_amount.format("fr_FR") == format_currency(
+            order._values["total_amount"],
+            currency=order._values["currency.code"],
+            locale="fr_FR",
         )
 
     def test_setting_values(self, product_model):
@@ -221,10 +225,9 @@ class TestMoneyType(object):
 
         list_price = product_model.query.first().list_price
         assert list_price.amount == new_price
-        assert list_price.currency == 'USD'  # hard coded in model property
+        assert list_price.currency == "USD"  # hard coded in model property
 
     def test_none(self, contact_model):
-
         contact = contact_model.query.first()
 
         contact.credit_limit_amount = None
@@ -233,18 +236,17 @@ class TestMoneyType(object):
         credit_limit = contact.query.first().credit_limit_amount
         assert credit_limit is None
 
-        contact.credit_limit_amount = Decimal('100000')
+        contact.credit_limit_amount = Decimal("100000")
         contact.save()
 
         credit_limit = contact.query.first().credit_limit_amount
-        assert credit_limit.amount == Decimal('100000')
-        assert credit_limit.currency == 'USD'  # hard coded in model property
+        assert credit_limit.amount == Decimal("100000")
+        assert credit_limit.currency == "USD"  # hard coded in model property
 
 
-@pytest.mark.parametrize("error_class", [
-    ServerError, ClientError, AuthenticationError,
-    UserError
-])
+@pytest.mark.parametrize(
+    "error_class", [ServerError, ClientError, AuthenticationError, UserError]
+)
 def test_exception_pickling(error_class):
     "Test that exceptions can be pickled"
     error = error_class("Shit Happens", "123")

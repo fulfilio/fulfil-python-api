@@ -13,13 +13,17 @@ from requests.packages.urllib3.util.retry import Retry
 from more_itertools import chunked
 from .serialization import dumps, loads
 from .exceptions import (
-    UserError, ClientError, ServerError, AuthenticationError, RateLimitError
+    UserError,
+    ClientError,
+    ServerError,
+    AuthenticationError,
+    RateLimitError,
 )
 from .signals import response_received
 from .exceptions import Error  # noqa
 
 
-request_logger = logging.getLogger('fulfil_client.request')
+request_logger = logging.getLogger("fulfil_client.request")
 
 
 def json_response(function):
@@ -30,13 +34,13 @@ def json_response(function):
             if rv.status_code == 400:
                 # Usually an user error
                 error = loads(rv.text)
-                if error.get('type') == 'UserError':
+                if error.get("type") == "UserError":
                     # These are error messages meant to be displayed to the
                     # user.
                     raise UserError(
-                        message=error.get('message'),
-                        code=error.get('code'),
-                        description=error.get('description'),
+                        message=error.get("message"),
+                        code=error.get("code"),
+                        description=error.get("description"),
                     )
                 else:
                     # Some unknown error type. Raise a generic client error
@@ -53,24 +57,23 @@ def json_response(function):
                 # 4XX range errors always have a JSON response
                 # with a code, message and description.
                 error = rv.text
-                if rv.headers.get('Content-Type') == 'application/json':
-                    error = loads(rv.text).get('message', error)
-                raise ClientError(
-                    error,
-                    rv.status_code
-                )
+                if rv.headers.get("Content-Type") == "application/json":
+                    error = loads(rv.text).get("message", error)
+                raise ClientError(error, rv.status_code)
             else:
                 # 5XX Internal Server errors
                 raise ServerError(
-                    rv.text, rv.status_code, rv.headers.get('X-Sentry-ID')
+                    rv.text, rv.status_code, rv.headers.get("X-Sentry-ID")
                 )
         return loads(rv.text)
+
     return wrapper
 
 
 class SessionAuth(requests.auth.AuthBase):
     "Session Authentication"
-    type_ = 'Session'
+
+    type_ = "Session"
 
     def __init__(self, login, user_id, session):
         self.login = login
@@ -78,50 +81,57 @@ class SessionAuth(requests.auth.AuthBase):
         self.session = session
 
     def __call__(self, r):
-        r.headers['Authorization'] = 'Session ' + base64.b64encode(
-            '%s:%s:%s' % (self.login, self.user_id, self.session)
+        r.headers["Authorization"] = "Session " + base64.b64encode(
+            "%s:%s:%s" % (self.login, self.user_id, self.session)
         )
         return r
 
 
 class BearerAuth(requests.auth.AuthBase):
     "Bearer Authentication"
-    type_ = 'BearerAuth'
+
+    type_ = "BearerAuth"
 
     def __init__(self, access_token):
         self.access_token = access_token
 
     def __call__(self, r):
-        r.headers['Authorization'] = 'Bearer ' + self.access_token
+        r.headers["Authorization"] = "Bearer " + self.access_token
         return r
 
 
 class APIKeyAuth(requests.auth.AuthBase):
     "API key based Authentication"
-    type_ = 'APIKey'
+
+    type_ = "APIKey"
 
     def __init__(self, api_key):
         self.api_key = api_key
 
     def __call__(self, r):
-        r.headers['x-api-key'] = self.api_key
+        r.headers["x-api-key"] = self.api_key
         return r
 
 
 class Client(object):
-
-    def __init__(self, subdomain,
-                 api_key=None, context=None, auth=None,
-                 user_agent="Python Client", base_url="fulfil.io",
-                 retry_on_rate_limit=False):
+    def __init__(
+        self,
+        subdomain,
+        api_key=None,
+        context=None,
+        auth=None,
+        user_agent="Python Client",
+        base_url="fulfil.io",
+        retry_on_rate_limit=False,
+    ):
         self.subdomain = subdomain
 
-        if self.subdomain == 'localhost':
-            self.host = 'http://localhost:8000'
+        if self.subdomain == "localhost":
+            self.host = "http://localhost:8000"
         else:
-            self.host = 'https://{}.{}'.format(self.subdomain, base_url)
+            self.host = "https://{}.{}".format(self.subdomain, base_url)
 
-        self.base_url = '%s/api/v2' % self.host
+        self.base_url = "%s/api/v2" % self.host
 
         self.session = requests.Session()
         if api_key is not None:
@@ -136,15 +146,17 @@ class Client(object):
                 read=retries,
                 connect=retries,
                 backoff_factor=0.5,
-                status_forcelist=(429, ),
+                status_forcelist=(429,),
             )
             adapter = HTTPAdapter(max_retries=retry)
-            self.session.mount('http://', adapter)
-            self.session.mount('https://', adapter)
+            self.session.mount("http://", adapter)
+            self.session.mount("https://", adapter)
 
-        self.session.headers.update({
-            'User-Agent': user_agent,
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": user_agent,
+            }
+        )
 
         self.context = {}
         if context is not None:
@@ -159,24 +171,22 @@ class Client(object):
         if auth is None:
             return
         if isinstance(auth, BearerAuth):
-            self.base_url = '%s/api/v2' % self.host
+            self.base_url = "%s/api/v2" % self.host
 
     def set_user_agent(self, user_agent):
-        self.session.headers.update({
-            'User-Agent': user_agent
-        })
+        self.session.headers.update({"User-Agent": user_agent})
 
     def refresh_context(self):
         """
         Get the default context of the user and save it
         """
-        User = self.model('res.user')
+        User = self.model("res.user")
 
         self.context = User.get_preferences(True)
         return self.context
 
     def today(self):
-        Date = self.model('ir.date')
+        Date = self.model("ir.date")
         rv = Date.today()
         return rv
 
@@ -208,25 +218,20 @@ class Client(object):
         """
         rv = self.session.post(
             self.host,
-            dumps({
-                "method": "common.db.login",
-                "params": [login, password]
-            }),
+            dumps({"method": "common.db.login", "params": [login, password]}),
         )
-        rv = loads(rv.content)['result']
+        rv = loads(rv.content)["result"]
         if set_auth:
-            self.set_auth(
-                SessionAuth(login, *rv)
-            )
+            self.set_auth(SessionAuth(login, *rv))
         return rv
 
     def is_auth_alive(self):
         "Return true if the auth is not expired, else false"
-        model = self.model('ir.model')
+        model = self.model("ir.model")
         try:
             model.search([], None, 1, None)
         except ClientError as err:
-            if err and err.message['code'] == 403:
+            if err and err.message["code"] == 403:
                 return False
             raise
         except Exception:
@@ -236,8 +241,8 @@ class Client(object):
 
 
 class WizardSession(object):
-    """An object to represent a specific session
-    """
+    """An object to represent a specific session"""
+
     def __init__(self, wizard, context):
         self.wizard = wizard
 
@@ -263,23 +268,16 @@ class WizardSession(object):
         self.state = state
         while self.state != self.end_state:
             result = self.parse_result(
-                self.wizard.execute(
-                    self.session_id,
-                    self.data,
-                    self.state,
-                    ctx
-                )
+                self.wizard.execute(self.session_id, self.data, self.state, ctx)
             )
-            if 'view' in result:
+            if "view" in result:
                 return result
         return result
 
     def parse_result(self, result):
-        if 'view' in result:
-            view = result['view']
-            self.data[view['state']].update(
-                view['defaults']
-            )
+        if "view" in result:
+            view = result["view"]
+            self.data[view["state"]].update(view["defaults"])
         else:
             self.state = self.end_state
         return result
@@ -292,11 +290,10 @@ class WizardSession(object):
 
 
 class Wizard(object):
-
     def __init__(self, client, wizard_name, **kwargs):
         self.client = client
         self.wizard_name = wizard_name
-        self.context = kwargs.get('context', {})
+        self.context = kwargs.get("context", {})
 
     @contextmanager
     def session(self, **context):
@@ -306,19 +303,17 @@ class Wizard(object):
 
     @property
     def path(self):
-        return '%s/wizard/%s' % (self.client.base_url, self.wizard_name)
+        return "%s/wizard/%s" % (self.client.base_url, self.wizard_name)
 
     @json_response
     def execute(self, session_id, data, state, context=None):
         ctx = self.client.context.copy()
         ctx.update(context or {})
-        request_logger.debug(
-            "Wizard::%s.execute::%s" % (self.wizard_name, state)
-        )
+        request_logger.debug("Wizard::%s.execute::%s" % (self.wizard_name, state))
         rv = self.client.session.put(
-            self.path + '/execute',
+            self.path + "/execute",
             dumps([session_id, data, state]),
-            params={'context': dumps(ctx)}
+            params={"context": dumps(ctx)},
         )
         # Call response signal
         return rv
@@ -329,9 +324,7 @@ class Wizard(object):
         ctx.update(context or {})
         request_logger.debug("Wizard::%s.create" % (self.wizard_name,))
         rv = self.client.session.put(
-            self.path + '/create',
-            dumps([]),
-            params={'context': dumps(ctx)}
+            self.path + "/create", dumps([]), params={"context": dumps(ctx)}
         )
         # Call response signal
         return rv
@@ -339,10 +332,7 @@ class Wizard(object):
     @json_response
     def delete(self, session_id):
         request_logger.debug("Wizard::%s.delete" % (self.wizard_name,))
-        rv = self.client.session.put(
-            self.path + '/delete',
-            dumps([session_id])
-        )
+        rv = self.client.session.put(self.path + "/delete", dumps([session_id]))
         # Call response signal
         return rv
 
@@ -369,7 +359,6 @@ class Record(object):
 
 
 class Model(object):
-
     def __init__(self, client, model_name):
         self.client = client
         self.model_name = model_name
@@ -378,42 +367,42 @@ class Model(object):
         @json_response
         def proxy_method(*args, **kwargs):
             context = self.client.context.copy()
-            context.update(kwargs.pop('context', {}))
+            context.update(kwargs.pop("context", {}))
             request_logger.debug(
-                "%s.%s::%s::%s" % (
-                    self.model_name, name, args, kwargs
-                )
+                "%s.%s::%s::%s" % (self.model_name, name, args, kwargs)
             )
             rv = self.client.session.put(
-                self.path + '/%s' % name,
+                self.path + "/%s" % name,
                 dumps(args),
                 params={
-                    'context': dumps(context),
-                }
+                    "context": dumps(context),
+                },
             )
             response_received.send(rv)
             return rv
+
         return proxy_method
 
     @property
     def path(self):
-        return '%s/model/%s' % (self.client.base_url, self.model_name)
+        return "%s/model/%s" % (self.client.base_url, self.model_name)
 
     @json_response
     def get(self, id, context=None):
         ctx = self.client.context.copy()
         ctx.update(context or {})
         rv = self.client.session.get(
-            self.path + '/%d' % id,
+            self.path + "/%d" % id,
             params={
-                'context': dumps(ctx),
-            }
+                "context": dumps(ctx),
+            },
         )
         response_received.send(rv)
         return rv
 
-    def search_read_all(self, domain, order, fields, batch_size=500,
-                        context=None, offset=0, limit=None):
+    def search_read_all(
+        self, domain, order, fields, batch_size=500, context=None, offset=0, limit=None
+    ):
         """
         An endless iterator that iterates over records.
 
@@ -427,7 +416,7 @@ class Model(object):
             context = {}
 
         # Fetch all the ids first
-        ids = self.search(domain, offset, limit, None, context=context)
+        ids = self.search(domain, offset, limit, order, context=context)
 
         for sub_ids in chunked(ids, batch_size):
             for record in self.read(sub_ids, fields, context=context):
@@ -435,7 +424,12 @@ class Model(object):
 
     @json_response
     def find(
-        self, filter=None, page=1, per_page=10, fields=None, order=None,
+        self,
+        filter=None,
+        page=1,
+        per_page=10,
+        fields=None,
+        order=None,
         context=None,
     ):
         """
@@ -464,13 +458,13 @@ class Model(object):
         rv = self.client.session.get(
             self.path,
             params={
-                'filter': dumps(filter or []),
-                'page': page,
-                'per_page': per_page,
-                'field': fields,
-                'order': dumps(order),
-                'context': dumps(context or self.client.context),
-            }
+                "filter": dumps(filter or []),
+                "page": page,
+                "per_page": per_page,
+                "field": fields,
+                "order": dumps(order),
+                "context": dumps(context or self.client.context),
+            },
         )
         response_received.send(rv)
         return rv
@@ -482,62 +476,58 @@ class Model(object):
         :param filename: File name of attachment
         :param url: Public url to download file from.
         """
-        Attachment = self.client.model('ir.attachment')
+        Attachment = self.client.model("ir.attachment")
         return Attachment.add_attachment_from_url(
-            filename, url, '%s,%s' % (self.model_name, id)
+            filename, url, "%s,%s" % (self.model_name, id)
         )
 
 
 class Report(object):
-
     def __init__(self, client, report_name):
         self.client = client
         self.report_name = report_name
 
     @property
     def path(self):
-        return '%s/report/%s' % (self.client.base_url, self.report_name)
+        return "%s/report/%s" % (self.client.base_url, self.report_name)
 
     @json_response
     def execute(self, records=None, data=None, **kwargs):
         context = self.client.context.copy()
-        context.update(kwargs.pop('context', {}))
+        context.update(kwargs.pop("context", {}))
         rv = self.client.session.put(
             self.path,
             json={
-                'objects': records or [],
-                'data': data or {},
+                "objects": records or [],
+                "data": data or {},
             },
             params={
-                'context': dumps(context),
-            }
+                "context": dumps(context),
+            },
         )
         response_received.send(rv)
         return rv
 
 
 class InteractiveReport(object):
-
     def __init__(self, client, model_name):
         self.client = client
         self.model_name = model_name
 
     @property
     def path(self):
-        return '%s/model/%s/execute' % (
-            self.client.base_url, self.model_name
-        )
+        return "%s/model/%s/execute" % (self.client.base_url, self.model_name)
 
     @json_response
     def execute(self, **kwargs):
         context = self.client.context.copy()
-        context.update(kwargs.pop('context', {}))
+        context.update(kwargs.pop("context", {}))
         rv = self.client.session.put(
             self.path,
             dumps([kwargs]),
             params={
-                'context': dumps(context),
-            }
+                "context": dumps(context),
+            },
         )
         response_received.send(rv)
         return rv
@@ -551,11 +541,11 @@ class AsyncResult(object):
     and result.
     """
 
-    PENDING = 'PENDING'
-    STARTED = 'STARTED'
-    FAILURE = 'FAILURE'
-    SUCCESS = 'SUCCESS'
-    RETRY = 'RETRY'
+    PENDING = "PENDING"
+    STARTED = "STARTED"
+    FAILURE = "FAILURE"
+    SUCCESS = "SUCCESS"
+    RETRY = "RETRY"
 
     def __init__(self, task_id, token, client):
         self.task_id = task_id
@@ -567,7 +557,7 @@ class AsyncResult(object):
 
     @property
     def path(self):
-        return '%s/async-result' % (self.client.base_url)
+        return "%s/async-result" % (self.client.base_url)
 
     def bind(self, client):
         self.client = client
@@ -582,11 +572,7 @@ class AsyncResult(object):
             )
         rv = self.client.session.post(
             self.path,
-            json={
-                'tasks': [
-                    [self.task_id, self.token]
-                ]
-            },
+            json={"tasks": [[self.task_id, self.token]]},
         )
         response_received.send(rv)
         return rv
@@ -597,19 +583,17 @@ class AsyncResult(object):
         """
         if self.state in (self.PENDING, self.STARTED):
             try:
-                response, = self._fetch_result()['tasks']
+                (response,) = self._fetch_result()["tasks"]
             except (KeyError, ValueError):
-                raise Exception(
-                    "Unable to find results for task."
-                )
+                raise Exception("Unable to find results for task.")
 
-            if 'error' in response:
+            if "error" in response:
                 self.state == self.FAILURE
-                raise ServerError(response['error'])
+                raise ServerError(response["error"])
 
-            if 'state' in response:
-                self.state = response['state']
-                self.result = response['result']
+            if "state" in response:
+                self.state = response["state"]
+                self.result = response["result"]
 
     def failed(self):
         """
@@ -657,12 +641,7 @@ def verify_webhook(data, secret, hmac_header):
     :param hmac_header: Value of the header in the request
     """
     digest = hmac.new(
-        base64.b64decode(secret),
-        data.encode('utf-8'),
-        hashlib.sha256
+        base64.b64decode(secret), data.encode("utf-8"), hashlib.sha256
     ).digest()
     computed_hmac = base64.b64encode(digest)
-    return hmac.compare_digest(
-        computed_hmac,
-        hmac_header.encode('utf-8')
-    )
+    return hmac.compare_digest(computed_hmac, hmac_header.encode("utf-8"))

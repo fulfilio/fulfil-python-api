@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Defines fixtures available to all tests."""
+
 import os
 
 import pytest
@@ -11,14 +12,12 @@ from fulfil_client.model import model_base
 
 @pytest.fixture
 def client():
-    return Client('demo', os.environ['FULFIL_API_KEY'])
+    return Client("demo", os.environ["FULFIL_API_KEY"])
 
 
 @pytest.fixture
 def oauth_client():
-    return Client(
-        'demo', auth=BearerAuth(os.environ['FULFIL_OAUTH_TOKEN'])
-    )
+    return Client("demo", auth=BearerAuth(os.environ["FULFIL_OAUTH_TOKEN"]))
 
 
 @pytest.fixture
@@ -29,6 +28,5 @@ def Model(client):
 @pytest.fixture
 def ModelWithCache(client):
     return model_base(
-        client,
-        cache_backend=redis.StrictRedis(host='localhost', port=6379, db=0)
+        client, cache_backend=redis.StrictRedis(host="localhost", port=6379, db=0)
     )

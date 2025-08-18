@@ -8,57 +8,58 @@ except ImportError:
     from distutils.core import setup
 
 
-with open('README.rst') as readme_file:
+with open("README.rst") as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
+with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    'pyjwt',
-    'requests',
-    'requests_oauthlib',
-    'money',
-    'babel',
-    'six',
-    'more-itertools',
+    "pyjwt",
+    "requests",
+    "requests_oauthlib",
+    "money",
+    "babel",
+    "six",
+    "more-itertools",
+    "isodate",
 ]
 
 
 setup(
-    name='fulfil_client',
-    version='2.0.0',
+    name="fulfil_client",
+    version="3.0.0",
     description="Fulfil REST API Client in Python",
-    long_description=readme + '\n\n' + history,
+    long_description=readme + "\n\n" + history,
     author="Fulfil.IO Inc.",
-    author_email='hello@fulfil.io',
-    url='https://github.com/fulfilio/fulfil-python-api',
+    author_email="hello@fulfil.io",
+    url="https://github.com/fulfilio/fulfil-python-api",
     packages=[
-        'fulfil_client',
-        'fulfil_client.contrib',
+        "fulfil_client",
+        "fulfil_client.contrib",
     ],
     package_dir={
-        'fulfil_client': 'fulfil_client',
-        'fulfil_client.contrib': 'fulfil_client/contrib'
+        "fulfil_client": "fulfil_client",
+        "fulfil_client.contrib": "fulfil_client/contrib",
     },
     entry_points={
-        'kombu.serializers': [
-            'fulfil = fulfil_client.contrib.kombu:register_args',
+        "kombu.serializers": [
+            "fulfil = fulfil_client.contrib.kombu:register_args",
         ],
     },
     include_package_data=True,
     install_requires=requirements,
     license="ISCL",
     zip_safe=False,
-    keywords='fulfil_client',
+    keywords="fulfil_client",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: ISC License (ISCL)',
-        'Natural Language :: English',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: ISC License (ISCL)",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
     ],
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'redis'],
+    setup_requires=["pytest-runner"],
+    tests_require=["pytest", "redis"],
 )

@@ -13,8 +13,14 @@ else:
 
 
 def render_email(
-    from_email, to, subject, text_template=None, html_template=None,
-    cc=None, attachments=None, **context
+    from_email,
+    to,
+    subject,
+    text_template=None,
+    html_template=None,
+    cc=None,
+    attachments=None,
+    **context,
 ):
     """
     Read the templates for email messages, format them, construct
@@ -39,18 +45,16 @@ def render_email(
 
     text_part = None
     if text_template:
-        text_part = MIMEText(
-            text_template.encode("utf-8"), 'plain', _charset="UTF-8")
+        text_part = MIMEText(text_template.encode("utf-8"), "plain", _charset="UTF-8")
 
     html_part = None
     if html_template:
-        html_part = MIMEText(
-            html_template.encode("utf-8"), 'html', _charset="UTF-8")
+        html_part = MIMEText(html_template.encode("utf-8"), "html", _charset="UTF-8")
 
     if text_part and html_part:
         # Construct an alternative part since both the HTML and Text Parts
         # exist.
-        message = MIMEMultipart('alternative')
+        message = MIMEMultipart("alternative")
         message.attach(text_part)
         message.attach(html_part)
     else:
@@ -60,7 +64,7 @@ def render_email(
     if attachments:
         # If an attachment exists, the MimeType should be mixed and the
         # message body should just be another part of it.
-        message_with_attachments = MIMEMultipart('mixed')
+        message_with_attachments = MIMEMultipart("mixed")
 
         # Set the message body as the first part
         message_with_attachments.attach(message)
@@ -69,32 +73,32 @@ def render_email(
         message = message_with_attachments
 
         for filename, content in attachments.items():
-            part = MIMEBase('application', "octet-stream")
+            part = MIMEBase("application", "octet-stream")
             part.set_payload(content)
             Encoders.encode_base64(part)
             # XXX: Filename might have to be encoded with utf-8,
             # i.e., part's encoding or with email's encoding
             part.add_header(
-                'Content-Disposition', 'attachment; filename="%s"' % filename
+                "Content-Disposition", 'attachment; filename="%s"' % filename
             )
             message.attach(part)
 
     # If list of addresses are provided for to and cc, then convert it
     # into a string that is "," separated.
     if isinstance(to, (list, tuple)):
-        to = ', '.join(to)
+        to = ", ".join(to)
     if isinstance(cc, (list, tuple)):
-        cc = ', '.join(cc)
+        cc = ", ".join(cc)
 
     # We need to use Header objects here instead of just assigning the strings
     # in order to get our headers properly encoded (with QP).
-    message['Subject'] = Header(subject, 'ISO-8859-1')
+    message["Subject"] = Header(subject, "ISO-8859-1")
 
     # TODO handle case where domain contains non-ascii letters
     # https://docs.aws.amazon.com/ses/latest/APIReference/API_Destination.html
-    message['From'] = from_email
-    message['To'] = to
+    message["From"] = from_email
+    message["To"] = to
     if cc:
-        message['Cc'] = cc
+        message["Cc"] = cc
 
     return message
