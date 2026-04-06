@@ -324,7 +324,7 @@ class Wizard(object):
         ctx.update(context or {})
         request_logger.debug("Wizard::%s.create" % (self.wizard_name,))
         rv = self.client.session.put(
-            self.path + "/create", dumps([]), params={"context": dumps(ctx)}
+            self.path + "/create", dumps([{}]), params={"context": dumps(ctx)}
         )
         # Call response signal
         return rv
