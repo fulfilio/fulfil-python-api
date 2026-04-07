@@ -312,8 +312,7 @@ class Wizard(object):
         request_logger.debug("Wizard::%s.execute::%s" % (self.wizard_name, state))
         rv = self.client.session.put(
             self.path + "/execute",
-            dumps([session_id, data, state]),
-            params={"context": dumps(ctx)},
+            dumps([session_id, data, state, ctx]),
         )
         # Call response signal
         return rv
@@ -324,15 +323,16 @@ class Wizard(object):
         ctx.update(context or {})
         request_logger.debug("Wizard::%s.create" % (self.wizard_name,))
         rv = self.client.session.put(
-            self.path + "/create", dumps([{}]), params={"context": dumps(ctx)}
+            self.path + "/create", dumps([ctx]),
         )
         # Call response signal
         return rv
 
     @json_response
     def delete(self, session_id):
+        ctx = self.client.context.copy()
         request_logger.debug("Wizard::%s.delete" % (self.wizard_name,))
-        rv = self.client.session.put(self.path + "/delete", dumps([session_id]))
+        rv = self.client.session.put(self.path + "/delete", dumps([session_id, ctx]))
         # Call response signal
         return rv
 
