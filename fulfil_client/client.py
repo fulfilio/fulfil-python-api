@@ -8,20 +8,20 @@ from datetime import datetime
 from functools import wraps
 
 import requests
+from more_itertools import chunked
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from more_itertools import chunked
-from .serialization import dumps, loads
-from .exceptions import (
-    UserError,
-    ClientError,
-    ServerError,
-    AuthenticationError,
-    RateLimitError,
-)
-from .signals import response_received
-from .exceptions import Error  # noqa
 
+from .exceptions import (
+    AuthenticationError,
+    ClientError,
+    Error,  # noqa
+    RateLimitError,
+    ServerError,
+    UserError,
+)
+from .serialization import dumps, loads
+from .signals import response_received
 
 request_logger = logging.getLogger("fulfil_client.request")
 
@@ -322,9 +322,7 @@ class Wizard(object):
         ctx = self.client.context.copy()
         ctx.update(context or {})
         request_logger.debug("Wizard::%s.create" % (self.wizard_name,))
-        rv = self.client.session.put(
-            self.path + "/create", dumps([ctx]),
-        )
+        rv = self.client.session.put(self.path + "/create", dumps([ctx]))
         # Call response signal
         return rv
 
@@ -371,9 +369,15 @@ class Model(object):
             request_logger.debug(
                 "%s.%s::%s::%s" % (self.model_name, name, args, kwargs)
             )
-            rv = self.client.session.put(
+            http_method = (
+                "QUERY"
+                if name in ("search", "read", "search_read", "search_count")
+                else "PUT"
+            )
+            rv = self.client.session.request(
+                http_method,
                 self.path + "/%s" % name,
-                dumps(args),
+                data=dumps(args),
                 params={
                     "context": dumps(context),
                 },

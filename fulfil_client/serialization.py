@@ -1,8 +1,9 @@
 # -*- coding: UTF-8 -*-
 import datetime
-from decimal import Decimal
 from collections import namedtuple
+from decimal import Decimal
 from functools import partial
+
 import isodate
 
 try:
@@ -10,7 +11,6 @@ try:
 except ImportError:
     import json
 import base64
-
 
 CONTENT_TYPE = "application/vnd.fulfil.v3+json"
 
@@ -79,7 +79,7 @@ def timedelta_decoder(v):
 
 @register_decoder("bytes")
 def _bytes_decoder(v):
-    cast = bytearray if bytes == str else bytes
+    cast = bytearray if bytes is str else bytes
     return cast(base64.decodebytes(v["base64"].encode("utf-8")))
 
 
